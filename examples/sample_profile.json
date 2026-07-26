@@ -1,0 +1,28 @@
+{
+  "name": "Shira Ozana",
+  "headline": "Python Developer | Backend Engineer",
+  "about": "Backend engineer with experience building APIs and data services. Currently deepening AI engineering skills around agents, RAG, and modern LLM tooling.",
+  "experience": [
+    {
+      "title": "Software Engineer",
+      "company": "Example Corp",
+      "duration": "2023 – Present",
+      "description": "Built and maintained FastAPI microservices, improved API reliability, and collaborated with product teams on delivery."
+    },
+    {
+      "title": "Junior Developer",
+      "company": "Startup Labs",
+      "duration": "2021 – 2023",
+      "description": "Developed Python services, wrote tests, and supported CI pipelines."
+    }
+  ],
+  "skills": [
+    "Python",
+    "FastAPI",
+    "PostgreSQL",
+    "Docker",
+    "REST APIs",
+    "Git"
+  ],
+  "career_goal": "Transition into an AI Engineer role focused on agentic systems, RAG, and MCP integrations"
+}
