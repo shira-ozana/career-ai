@@ -6,7 +6,7 @@ import logging
 
 from app.models.profile import ProfileAnalysis, ProfileInput
 from app.prompts.profile import PROFILE_ANALYZER_SYSTEM_PROMPT, build_profile_user_prompt
-from app.tools.llm import StructuredLLM
+from app.tools.llm import StructuredLLM, StructuredLLMClient
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 class ProfileAnalyzerAgent:
     """Analyze a professional profile and return structured recommendations."""
 
-    def __init__(self, llm: StructuredLLM | None = None) -> None:
+    def __init__(self, llm: StructuredLLMClient | None = None) -> None:
         self.llm = llm or StructuredLLM()
 
     async def analyze(self, profile: ProfileInput) -> ProfileAnalysis:

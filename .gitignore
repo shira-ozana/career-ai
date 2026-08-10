@@ -36,3 +36,6 @@ htmlcov/
 logs/
 *.log
 data/
+
+*.sqlite3
+*.db

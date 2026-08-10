@@ -8,6 +8,25 @@ Helps you analyze LinkedIn/CV profiles, close skill gaps, tailor resumes, create
 
 **Stage 2 MVP** – Profile Analyzer Agent with OpenAI Structured Outputs.
 
+## Documentation
+
+Detailed docs (with diagrams) live in [`docs/`](./docs/README.md):
+
+1. [Overview](./docs/01-overview.md)
+2. [Project structure](./docs/02-project-structure.md)
+3. [Architecture](./docs/03-architecture.md)
+4. [Config and secrets](./docs/04-config.md)
+5. [Models](./docs/05-models.md)
+6. [Prompts](./docs/06-prompts.md)
+7. [LLM client](./docs/07-llm-client.md)
+8. [Profile Agent](./docs/08-profile-agent.md)
+9. [CLI](./docs/09-cli.md)
+10. [Tests](./docs/10-tests.md)
+11. [Data flow](./docs/11-data-flow.md)
+12. [Scripts and tooling](./docs/12-scripts-and-tooling.md)
+13. [Deterministic boundaries](./docs/13-deterministic-boundaries.md)
+14. [Code walkthrough](./docs/14-code-walkthrough.md)
+
 ## Features (current)
 
 - Typed profile input/output via Pydantic

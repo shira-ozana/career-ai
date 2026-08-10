@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TypeVar
+from typing import Protocol, TypeVar
 
 from openai import AsyncOpenAI
 from pydantic import BaseModel
@@ -13,6 +13,24 @@ from app.config import Settings, get_settings
 logger = logging.getLogger(__name__)
 
 T = TypeVar("T", bound=BaseModel)
+
+
+class StructuredLLMClient(Protocol):
+    """Contract for structured LLM backends (OpenAI, mock, future providers).
+
+    Agents depend on this protocol rather than a concrete SDK client so tests
+    can inject ``MockStructuredLLM`` and production can swap providers without
+    changing agent code.
+    """
+
+    async def complete_structured(
+        self,
+        *,
+        system_prompt: str,
+        user_prompt: str,
+        response_model: type[T],
+        model: str | None = None,
+    ) -> T: ...
 
 
 class StructuredLLM:
