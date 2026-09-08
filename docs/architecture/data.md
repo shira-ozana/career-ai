@@ -1,6 +1,6 @@
 # Data architecture
 
-**Proposed** conceptual model for persistent career-domain data. **Not implemented.** There is no database, object store, or data-access layer in the current codebase.
+This page covers persistent career-domain data: what is **implemented** in the current schema, what is **decided** as design, and what remains **proposed** or a **future consideration**.
 
 The runtime analysis contract (`ProfileInput` / `ProfileAnalysis`) is documented in [Models](../design/models.md). That contract is **not** the canonical Candidate Profile described here.
 
@@ -9,15 +9,23 @@ Status of topics on this page:
 | Topic | Design status |
 |-------|----------------|
 | User vs Candidate Profile | Decided |
+| AuthIdentity vs User | Decided; in the schema |
 | Structured ingestion, not wholesale raw docs | Decided |
 | Conflict detection + HITL | Decided |
 | Agents without unrestricted DB access | Proposed (do not implement yet) |
-| Conceptual entities and relationships | Proposed |
-| Skill / Company / Institution normalization | Decided as direction, not schema-complete |
+| Initial relational schema | **Implemented** (ORM + Alembic; not wired to agents) |
+| JobSearchRequest as search intent | Decided; in the schema |
+| JobMatch belongs to a search request | Decided; in the schema |
+| ResumeVersion (replaces TailoredCV) | Decided; in the schema |
+| Skill / Company normalization | Decided; in the schema |
+| Education / Institution | Future — not in this schema |
 | Active job catalog + freshness | Proposed |
-| Tailored CV metadata vs files | Proposed |
-| Database engine | **Open question** |
+| Object storage for source/resume files | Future consideration — not implemented |
+| Database engine | **Decided** — PostgreSQL |
+| JSONB for selectively flexible fields | Future consideration — not a current requirement |
 | Vector / semantic database | Future consideration — not a current requirement |
+
+Setup, migrations, and package layout: [Database](../development/database.md). Decision record: [ADR 001](../adr/001-postgresql.md).
 
 ## Persistent candidate state
 
@@ -27,22 +35,28 @@ Account identity and career-domain data are different concerns:
 
 | Concept | Role |
 |---------|------|
-| **User** | Account / identity |
+| **User** | Application-level identity and contact information |
+| **AuthIdentity** | Link from a User to an external authentication provider subject |
 | **Candidate Profile** | Canonical structured representation of the user's professional profile |
 
 ```text
 User  1 ────── 1  CandidateProfile
+User  1 ────── N  AuthIdentity
 ```
 
 Rules:
 
-- One active Candidate Profile per User.
+- One active Candidate Profile per User (`candidate_profiles.user_id` is unique).
 - Update that profile as information changes. Do not keep multiple simultaneously active profiles.
+- Authentication providers must not replace User. A User can have many AuthIdentity rows (for example one per provider).
+- Do **not** store passwords on User. Authentication logic is not implemented in this schema.
 - Historical analyses, recommendations, actions, or changes may be stored **separately** so continuity is preserved without forking the canonical profile.
+
+`CandidateProfile` is canonical professional state. It must **not** contain job-search targeting fields such as `target_title`. Search intent lives on `JobSearchRequest`.
 
 ## CV and LinkedIn ingestion
 
-**Decided** as a design principle.
+**Decided** as a design principle. **Not implemented** in the running application.
 
 Raw CV and LinkedIn documents must not be passed wholesale through every downstream agent.
 
@@ -50,17 +64,19 @@ Parse and **normalize** sources into a **structured representation**, for exampl
 
 - skills
 - experience
-- education
+- education (schema not in this revision)
 - projects
 - professional / profile metadata
 
 Downstream components should use **selective retrieval**: read only the structured fields they need, from **persistent state**, when possible.
 
+Original source files will eventually live in **object storage**. Meaningful parsed professional information is persisted as structured rows (`CandidateProfile`, `Experience`, `CandidateProfileSkill`, and later education). Object storage is **not implemented**.
+
 Vector / semantic retrieval is **not** a current requirement. Reconsider it only if a concrete use case needs it.
 
 ## Conflicting data and human-in-the-loop
 
-**Decided.**
+**Decided.** **Not implemented.**
 
 CV and LinkedIn will disagree. The system must not silently pick a winner.
 
@@ -72,6 +88,8 @@ CV and LinkedIn will disagree. The system must not silently pick a winner.
 6. Update the canonical Candidate Profile after validation.
 
 Downstream agents must not treat unresolved critical information as verified truth.
+
+Conflict/provenance tables are **not** part of the current schema.
 
 ## Data access principles
 
@@ -97,63 +115,83 @@ Principles:
 - **Auditability** of reads/writes that matter
 - **HITL approval** for important changes to canonical user data where appropriate
 
-## Initial relational data model
+The current codebase has ORM models, engine/session helpers, and an Alembic migration. It does **not** yet have repositories, a service layer, or Agent → DB integration.
 
-**Proposed** conceptual model. Column-level schema is intentionally incomplete.
+## Implemented relational schema
+
+**Implemented** as SQLAlchemy models and the initial Alembic migration. Agents and the CLI do **not** read or write these tables yet.
 
 ### Core entities
 
 | Entity | Role |
 |--------|------|
-| User | Account identity |
+| User | Application identity and contact information |
+| AuthIdentity | External authentication subject linked to a User |
 | CandidateProfile | Canonical professional profile |
 | Experience | One role/period on the profile |
 | Skill | Reusable skill entity |
+| CandidateProfileSkill | Profile ↔ Skill junction |
 | Company | Reusable organization (experience and jobs) |
 | Job | System-level catalog entry; not owned by a user |
-| JobMatch | Relationship between a candidate and a job |
-| TailoredCV | Artifact generated for a specific match |
+| JobSearchRequest | Intent/criteria for one job search |
+| JobMatch | Match between one search request and one job |
+| ResumeVersion | A meaningful resume representation (original, generic, or tailored) |
 
-**Education** and **Institution** belong in the candidate domain. Their detailed schema is not complete; they are included so education is not forgotten.
+**Education** and **Institution** belong in the candidate domain. They are not in this schema. Workflow/conversation state is a separate future concept and is not persisted here.
 
 ### Relationships
 
 ```text
 User                1 : 1    CandidateProfile
+User                1 : N    AuthIdentity
 CandidateProfile    1 : N    Experience
 Company             1 : N    Experience
-CandidateProfile    N : M    Skill          via CandidateProfileSkill
+CandidateProfile    N : M    Skill              via CandidateProfileSkill
 Company             1 : N    Job
-CandidateProfile    N : M    Job            via JobMatch
-JobMatch            1 : N    TailoredCV     (artifact of a specific match)
-CandidateProfile    1 : N    Education      (schema incomplete)
-Institution         1 : N    Education      (schema incomplete)
+CandidateProfile    1 : N    JobSearchRequest
+JobSearchRequest    1 : N    JobMatch
+Job                 1 : N    JobMatch
+CandidateProfile    1 : N    ResumeVersion
+JobMatch            0 : N    ResumeVersion      (optional; used for tailored resumes)
 ```
 
-`JobMatch` holds relationship data, such as:
+`CandidateProfile` vs `JobSearchRequest`:
+
+- **CandidateProfile** answers: who is this candidate professionally?
+- **JobSearchRequest** answers: what does this candidate want to search for right now?
+- A candidate can run multiple searches. `target_title` belongs on `JobSearchRequest`, not on `CandidateProfile`.
+
+`JobMatch` is the result of matching **one search request** to **one job**, not a direct CandidateProfile ↔ Job table. It holds:
 
 - match score
 - match reason
 - status
 - timestamps
 
-`TailoredCV` is associated with `JobMatch` because it is generated for a specific candidate/job pairing, not as a free-floating document.
+`ResumeVersion` replaces the earlier conceptual `TailoredCV` entity. It represents a persisted resume state, not every conversational edit:
+
+- **original** — the uploaded/source resume representation (no `JobMatch` required)
+- **generic** — a general resume derived from the canonical profile (no `JobMatch` required)
+- **tailored** — a resume associated with a specific `JobMatch`
+
+`file_reference` is metadata for a future object-storage path. Object storage itself is not implemented. Intermediate editing drafts are not retained as rows.
 
 ### Entity-relationship diagram
 
 ```mermaid
 erDiagram
     User ||--|| CandidateProfile : has
+    User ||--o{ AuthIdentity : authenticates_via
     CandidateProfile ||--o{ Experience : includes
     Company ||--o{ Experience : appears_in
     CandidateProfile ||--o{ CandidateProfileSkill : has
     Skill ||--o{ CandidateProfileSkill : tagged_by
     Company ||--o{ Job : lists
-    CandidateProfile ||--o{ JobMatch : matched_as
+    CandidateProfile ||--o{ JobSearchRequest : searches_with
+    JobSearchRequest ||--o{ JobMatch : produces
     Job ||--o{ JobMatch : matched_to
-    JobMatch ||--o{ TailoredCV : produces
-    CandidateProfile ||--o{ Education : includes
-    Institution ||--o{ Education : appears_in
+    CandidateProfile ||--o{ ResumeVersion : has
+    JobMatch ||--o{ ResumeVersion : may_tailor
 ```
 
 ## Normalization
@@ -162,14 +200,14 @@ erDiagram
 
 ### Skills
 
-Skills are entities, not repeated free-text values. That enables:
+Skills are entities, not repeated free-text values or a JSON list on `CandidateProfile`. That enables:
 
 - consistent naming
 - reuse across profiles and jobs
 - analytics (for example, frequently occurring skills)
 - future recommendations based on profiles and jobs
 
-CandidateProfile ↔ Skill is many-to-many (`CandidateProfileSkill`).
+CandidateProfile ↔ Skill is many-to-many (`CandidateProfileSkill`). Proficiency, years, and confidence are **not** on the junction yet.
 
 Today's agent contract still uses `list[str]` on `ProfileInput`. That is an I/O convenience, not the persistence model.
 
@@ -180,11 +218,11 @@ Today's agent contract still uses `list[str]` on `ProfileInput`. That is an I/O 
 - candidate `Experience`
 - `Job` listings
 
-One company identity across those domains avoids duplicated organization records.
+Experience stores `company_id`, not a duplicated company name.
 
 ### Institutions
 
-Educational institutions may similarly be reusable entities, connected through `Education` with relationship-specific data such as degree, field of study, and dates.
+Educational institutions may similarly be reusable entities, connected through `Education` with relationship-specific data such as degree, field of study, and dates. **Not in the current schema.**
 
 ### Limit of normalization
 
@@ -192,9 +230,9 @@ Do not create entities for every string. Free-form descriptions and values with 
 
 ## Job catalog and freshness
 
-**Proposed.** Do not design or implement the external job-ingestion pipeline yet.
+**Proposed.** The `Job` table exists. Do not design or implement the external job-ingestion pipeline yet.
 
-`Job` is a **system-level** entity. It is not owned by an individual user. One job may match many Candidate Profiles.
+`Job` is a **system-level** entity. It is not owned by an individual user. One job may match many search requests.
 
 Direction: maintain an **active catalog** of jobs rather than starting every user search entirely from external sources.
 
@@ -203,51 +241,42 @@ The system should consider:
 - periodic refresh of job status and data
 - `last_checked_at` (or equivalent) freshness metadata
 - an on-demand freshness check before important actions when appropriate
-- active / closed job lifecycle
+- active / closed job lifecycle (`jobs.status` currently allows `active` or `closed`)
 - relevance filtering and ranking **before** persisting user-specific `JobMatch` rows
 
 Trade-off: fresher data versus external calls, latency, and cost. Catalog refresh policy is not decided beyond these constraints.
 
-## Tailored CV storage
+## Resume file storage
 
-**Proposed.**
+**Decided** as a split; file storage is **not implemented**.
 
 Separate structured metadata from file artifacts.
 
 | Store | Holds |
 |-------|--------|
-| Database | TailoredCV metadata, JobMatch relationship, timestamps/status, file/object reference |
-| File / object storage | Generated PDF/DOCX bytes |
+| Database | `ResumeVersion` metadata, optional `JobMatch` link, timestamps, `file_reference` |
+| File / object storage | Original and generated PDF/DOCX bytes |
 
-**Retention policy:** intermediate working drafts do not need long-term persistence. Persist meaningful / final tailored CV artifacts rather than every generated iteration, to limit storage growth.
+**Retention policy:** intermediate working drafts do not need long-term persistence. Persist meaningful resume versions rather than every generated iteration, to limit storage growth.
 
-No object-storage product is selected.
+No object-storage product is selected. `file_reference` is a string placeholder for that future integration.
 
-## Database decision — open
+Workflow and agent conversational state will be designed later with orchestration. **Do not** treat `ResumeVersion` as a chat-log or workflow-state table.
 
-**Open question.** Do not treat PostgreSQL (or any engine) as chosen.
+## Database decision
 
-Evaluation is between **relational / PostgreSQL-style** storage and **MongoDB / document** storage. Selection waits until the data model and access patterns are sufficiently defined.
+**Decided.** PostgreSQL is the primary relational database. Supabase is the current hosted PostgreSQL provider for development. The application depends on standard PostgreSQL and SQLAlchemy abstractions, not Supabase-specific database APIs.
 
-### Relational strengths relevant here
+See [ADR 001: PostgreSQL with SQLAlchemy](../adr/001-postgresql.md).
 
-- explicit relationships among domain entities
-- many-to-many associations
-- referential integrity
-- normalization
-- complex cross-entity queries
-- consistency
+PostgreSQL fits this domain because:
 
-### Document-model strengths relevant here
+- entities are relational (User, Company, Skill, Job, Experience, search requests, matches, resume versions)
+- access patterns cross entities (filter/sort `JobMatch` rows, join a search request to jobs and companies)
+- reusable identities (`Company`, `Skill`) need a single source of truth
+- referential integrity and uniqueness constraints matter (1:1 profile, unique provider subject, unique search+job match)
+- consistency across related writes is more important here than a nested document default
 
-- a Candidate Profile naturally resembles a nested document
-- flexible, evolving structures
-- convenient retrieval when related profile fields are usually read together
+JSONB remains a **future option** for selectively flexible fields. It is not used in the current schema.
 
-### Current observation
-
-As the model has evolved, the domain looks **increasingly relational**: Users, Companies, Skills, Jobs, Experiences, Matches, and CV artifacts have reusable relationships rather than a single nested blob.
-
-That observation is **not** a decision. If PostgreSQL is selected later, JSON/JSONB could still hold flexible portions of the model. That is a **future consideration**, not a current requirement.
-
-When this is decided, record it as an ADR under `docs/adr/`.
+MongoDB / document storage was considered while the model was still open. The domain is not a single nested Candidate Profile blob; it is a graph of reusable, constrained entities.

@@ -9,6 +9,10 @@ career-ai/
 │   ├── __main__.py              # Enables: python -m app
 │   ├── cli.py                   # Terminal entrypoint
 │   ├── config.py                # Settings from .env
+│   ├── db/                      # SQLAlchemy persistence foundation
+│   │   ├── base.py              # Declarative Base + mixins
+│   │   ├── session.py           # Lazy engine / sessionmaker
+│   │   └── models/              # ORM mappings
 │   ├── agents/                  # All agents
 │   │   ├── profile/             # Implemented
 │   │   │   ├── __init__.py
@@ -28,11 +32,15 @@ career-ai/
 │   ├── memory/                  # Empty scaffold; not part of current MVP
 │   ├── workflows/               # Empty scaffold – proposed orchestration
 │   └── api/                     # Empty scaffold – future HTTP API
+├── alembic/                     # Migrations
+│   ├── env.py
+│   └── versions/
 ├── tests/                       # Tests
 ├── examples/                    # Sample inputs
 ├── docs/                        # MkDocs site – see below
 ├── scripts/                     # Helpers (git push)
 ├── docker/                      # Future
+├── alembic.ini
 ├── mkdocs.yml                   # Docs site navigation
 ├── pyproject.toml               # Dependencies + tooling config
 ├── uv.lock                      # Locked dependency versions
@@ -49,15 +57,17 @@ docs/
 ├── index.md                    # Docs home and folder map
 ├── architecture/
 │   ├── overview.md             # Product, target vs implemented architecture
-│   ├── data.md                 # Persistence, ingestion, conceptual data model
+│   ├── data.md                 # Persistence, ingestion, relational schema
 │   └── project-structure.md    # This page
 ├── design/                     # Implemented feature and component design
-└── development/                # Setup, testing, documentation conventions
+├── development/                # Setup, testing, documentation conventions
+└── adr/
+    └── 001-postgresql.md       # PostgreSQL + SQLAlchemy decision
 ```
 
-`adr/` and `flows/` are created when the first architectural decision or end-to-end flow is written. Do not add empty placeholder pages. The database engine is still an [open question](data.md#database-decision-open); add an ADR when it is decided.
+`flows/` is created when the first end-to-end flow is written. Do not add empty placeholder pages.
 
-Guidelines: [Documentation](../development/documentation.md).
+Guidelines: [Documentation](../development/documentation.md). Database setup: [Database](../development/database.md).
 
 ## Why this layout?
 
@@ -78,8 +88,8 @@ flowchart TB
         Prompts[prompts/]
         Tools[tools/]
         Config[config.py]
+        DB[db/]
         Memory[memory/ unused scaffold]
-    end
     end
 
     CLI --> Agents
@@ -88,6 +98,7 @@ flowchart TB
     Agents --> Prompts
     Agents --> Tools
     Tools --> Config
+    DB -.-> Config
     Workflows -.-> Agents
     Agents -.-> Memory
 ```
@@ -98,6 +109,7 @@ flowchart TB
 - **`models/`** = how data looks (contracts)
 - **`prompts/`** = how we talk to the LLM (instructions)
 - **`tools/`** = how we connect outward (OpenAI, etc.)
+- **`db/`** = how domain state is stored (SQLAlchemy; not used by agents yet)
 - **`cli.py` / `api/`** = how the user invokes the system
 
 This lets us replace CLI with an API later without rewriting the agent.
@@ -107,6 +119,8 @@ This lets us replace CLI with an API later without rewriting the agent.
 | File | Single responsibility |
 |------|------------------------|
 | `app/config.py` | Load settings and secrets |
+| `app/db/` | SQLAlchemy Base, engine/session, ORM models |
+| `alembic/` | Schema migrations |
 | `app/models/profile.py` | Validate and shape profile data |
 | `app/prompts/profile.py` | LLM instruction text |
 | `app/tools/llm.py` | Call OpenAI + parse structured output |
@@ -128,7 +142,8 @@ They are **not** a frozen map of the [target architecture](overview.md#target-ar
 |------|------|
 | `pyproject.toml` | Package name, dependencies, `career-ai` script, pytest/ruff config |
 | `uv.lock` | Exact versions for reproducible installs |
-| `.env` | Local secrets (`OPENAI_API_KEY`, `GITHUB_TOKEN`) – **not in git** |
+| `alembic.ini` | Alembic config; database URL comes from Settings, not this file |
+| `.env` | Local secrets (`OPENAI_API_KEY`, `DATABASE_URL`, `GITHUB_TOKEN`) – **not in git** |
 | `.env.example` | Safe shared template |
 | `examples/sample_profile.json` | Sample input for CLI runs |
 

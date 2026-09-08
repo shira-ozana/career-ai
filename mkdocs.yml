@@ -43,7 +43,10 @@ nav:
       - Prompts: design/prompts.md
       - LLM client: design/llm-client.md
       - CLI: design/cli.md
+  - Decisions:
+      - 001 PostgreSQL: adr/001-postgresql.md
   - Development:
       - Documentation: development/documentation.md
       - Config and secrets: development/config.md
+      - Database: development/database.md
       - Testing: development/testing.md

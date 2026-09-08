@@ -14,6 +14,7 @@ flowchart LR
     Settings --> get_settings["get_settings() cached"]
     get_settings --> LLM[StructuredLLM]
     get_settings --> CLI[CLI logging]
+    get_settings --> DB[Engine / Alembic]
 ```
 
 ## `Settings` fields
@@ -23,6 +24,7 @@ flowchart LR
 | `openai_api_key` | `OPENAI_API_KEY` | `""` | OpenAI auth |
 | `openai_model` | `OPENAI_MODEL` | `gpt-4o-mini` | Model name |
 | `log_level` | `LOG_LEVEL` | `INFO` | CLI log level |
+| `database_url` | `DATABASE_URL` | `""` | SQLAlchemy PostgreSQL URL |
 
 ### Important behavior
 
@@ -30,6 +32,7 @@ flowchart LR
 2. `extra="ignore"` – unknown `.env` keys (e.g. `GITHUB_TOKEN`) do **not** break loading.
 3. `get_settings()` is wrapped with `@lru_cache` – created once per process.
 4. `require_openai_api_key()` raises a clear error if the key is missing.
+5. `require_database_url()` raises a clear error if the URL is missing. The Profile Analyzer CLI does not call it.
 
 ## Environment files
 
@@ -41,9 +44,12 @@ Contains real secrets:
 OPENAI_API_KEY=...
 OPENAI_MODEL=gpt-4o-mini
 LOG_LEVEL=INFO
+DATABASE_URL=postgresql+psycopg://USER:PASSWORD@HOST:5432/DATABASE
 GITHUB_USERNAME=shira-ozana
 GITHUB_TOKEN=...
 ```
+
+Use a real URL only in local `.env`. Never commit it. `.env.example` contains a commented placeholder only.
 
 ### `.env.example` (tracked in git)
 
@@ -55,6 +61,7 @@ Safe template without real secrets – documents which variables are needed.
 |----------|--------------|
 | `StructuredLLM` | `openai_api_key`, `openai_model` |
 | `cli.py` | `log_level` |
+| `app/db/session.py`, Alembic | `database_url` (when creating an engine or migrating) |
 | `scripts/git-push.sh` | `GITHUB_USERNAME`, `GITHUB_TOKEN` (directly from `.env`, not via Settings) |
 
 > Note: `GITHUB_TOKEN` is only for git push. The Profile Agent itself does not need it.

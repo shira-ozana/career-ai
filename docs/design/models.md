@@ -7,7 +7,7 @@
 These models are the **implemented agent I/O contract** for the Profile Analyzer. They are not the persistent [Candidate Profile](../architecture/data.md#persistent-candidate-state).
 
 - `ProfileInput.skills` is `list[str]` with in-memory normalize/dedupe.
-- Persistence design treats **Skill** (and Company, and later Institution) as reusable entities. See [Data architecture](../architecture/data.md).
+- Persistence treats **Skill** (and Company) as reusable ORM entities in `app/db/models/`. See [Data architecture](../architecture/data.md) and [Database](../development/database.md).
 
 ## Why this is the most important implemented contract
 

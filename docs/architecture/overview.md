@@ -36,7 +36,7 @@ The product ingests a candidate's professional sources, builds a reliable profil
 | Job discovery | MVP | Not implemented (`app/agents/jobs/` is a placeholder) |
 | Candidate-to-job matching / ranking | MVP | Not implemented |
 | CV tailoring for a selected job | MVP | Not implemented (`app/agents/resume/` is a placeholder) |
-| Persistent job-search context across sessions | MVP | Not implemented; no user/profile persistence |
+| Persistent job-search context across sessions | MVP | Partial: PostgreSQL schema exists; agents/CLI do not persist yet |
 
 Job discovery and matching stay **conceptually distinct** even if the first implementation lives in one component.
 
@@ -98,8 +98,8 @@ Responsible for:
 Responsible for:
 
 - searching an **actively maintained job catalog** (system-level inventory, not a per-user scrape-on-demand starting point)
-- filtering and ranking jobs using candidate information and user-defined relevance criteria
-- creating **persisted matches only** for jobs that pass the configured relevance threshold
+- filtering and ranking jobs using candidate information and a `JobSearchRequest` (search intent/criteria)
+- creating **persisted matches only** for jobs that pass the configured relevance threshold (`JobMatch` belongs to a search request + job)
 
 Discovery (what is in the catalog / what can be found) and matching (what is relevant enough to persist as a `JobMatch`) remain distinguishable even if first shipped together.
 
@@ -108,7 +108,7 @@ Discovery (what is in the catalog / what can be found) and matching (what is rel
 Responsible for:
 
 - using a `JobMatch` and the Candidate Profile
-- generating a CV tailored to that specific opportunity
+- generating a resume tailored to that specific opportunity (`ResumeVersion` with `version_type=tailored`)
 
 #### Orchestration / Workflow
 
@@ -133,7 +133,7 @@ flowchart LR
     Ready --> Discover[Job discovery]
     Discover --> Rank[Filter / rank]
     Rank --> Match[Persisted JobMatch]
-    Match --> Tailor[Tailored CV]
+    Match --> Tailor[ResumeVersion tailored to JobMatch]
 ```
 
 ## Implemented architecture (current codebase)
@@ -147,6 +147,7 @@ flowchart LR
 | OpenAI Structured Outputs | Done | `app/tools/llm.py` |
 | Prompt templates | Done | `app/prompts/profile.py` |
 | Settings from `.env` | Done | `app/config.py` |
+| PostgreSQL persistence foundation | Done | `app/db/`, `alembic/` |
 | CLI | Done | `app/cli.py` |
 | Tests | Done | `tests/` |
 | Orchestrator / workflows | Empty | `app/workflows/` |
@@ -197,12 +198,17 @@ flowchart LR
         OA[OpenAI]
     end
 
+    subgraph L5["5. Persistence foundation"]
+        DB[(PostgreSQL / SQLAlchemy)]
+    end
+
     CLI --> PA
     PA --> PI
     PA --> PO
     PA --> PR
     PA --> SL
     SL --> OA
+    DB -.->|not wired to agents yet| PA
 ```
 
 | Layer | Question it answers | Allowed dependencies |
@@ -211,8 +217,9 @@ flowchart LR
 | Agent | What is the business flow? | Models, Prompts, Tools |
 | Domain Contracts | What does the data look like? | Pydantic only |
 | AI Infrastructure | How do we talk to the LLM? | OpenAI SDK + Settings |
+| Persistence foundation | How is domain state stored? | SQLAlchemy models; unused by agents today |
 
-These layers describe **today's code**. The proposed Data Access / Service Layer (authorization, validation, persistence) is not present yet; see [Data architecture](data.md#data-access-principles).
+These layers describe **today's code**. The proposed Data Access / Service Layer (authorization, validation, agent-facing persistence) is not present yet; see [Data architecture](data.md#data-access-principles).
 
 ## Design principles already in use
 
@@ -238,7 +245,7 @@ Tests then need no real network calls.
 
 ### 4. Central config
 
-All runtime settings (model, API key, log level) go through `Settings`.
+All runtime settings (model, API key, log level, database URL) go through `Settings`.
 
 ## Repeatable pattern for future agents
 
@@ -302,8 +309,7 @@ No cache, queue, or replica infrastructure is in the project today. Do not intro
 |-----|--------|
 | Orchestration (`app/workflows/`) | Proposed; scaffold only |
 | Profile ingestion from CV / LinkedIn PDF or URL | Proposed; not started |
-| Canonical Candidate Profile persistence | Proposed; see [Data architecture](data.md) |
+| Canonical Candidate Profile persistence | Schema implemented; not wired to agents. See [Data architecture](data.md) |
 | Data access / service layer | Proposed; not started |
 | LinkedIn optimization, job catalog/matching, CV tailoring | Proposed product MVP; placeholders only |
 | HTTP API (`app/api/`) | Future consideration |
-| Database engine | **Open question** |

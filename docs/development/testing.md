@@ -6,7 +6,9 @@
 tests/
 ├── __init__.py
 ├── test_models_profile.py
-└── test_profile_agent.py
+├── test_profile_agent.py
+├── test_db_models.py
+└── test_db_config.py
 ```
 
 ## How to run
@@ -40,8 +42,14 @@ flowchart TB
         T4[agent returns expected analysis via fake LLM]
     end
 
+    subgraph Persistence["test_db_models.py / test_db_config.py"]
+        T5[ORM tables, relationships, constraints]
+        T6[DATABASE_URL config and lazy engine]
+    end
+
     Models --> Contract[Data contract]
     Agent --> Flow[Agent flow]
+    Persistence --> Schema[Persistence foundation]
 ```
 
 ## Test details
@@ -79,6 +87,25 @@ Tests the agent end-to-end **without OpenAI**:
 5. Asserts the schema sent is `ProfileAnalysis`
 6. Asserts the user prompt contains the person's name
 
+### `test_db_models.py`
+
+Inspects SQLAlchemy metadata only (no database connection):
+
+- expected tables are present
+- unimplemented entities (`TailoredCV`, workflow state, education) are absent
+- `CandidateProfile` has no `target_title`; `JobSearchRequest` does
+- `JobMatch` references `JobSearchRequest` + `Job`, with a uniqueness constraint
+- `ResumeVersion` allows original/generic/tailored and a nullable `job_match_id`
+
+### `test_db_config.py`
+
+- `DATABASE_URL` is optional for the existing CLI
+- `require_database_url()` fails clearly when unset
+- `postgres://` / `postgresql://` URLs are rewritten to the psycopg3 dialect
+- importing the session module does not create an engine
+
+PostgreSQL integration tests (applying Alembic against a real database) are a future step. See [Database](database.md).
+
 ## Why a Fake LLM instead of mocking the SDK?
 
 Because we test **our usage contract**:
@@ -97,13 +124,14 @@ not the internal details of the OpenAI SDK.
 | Missing API key failure | unit test for `require_openai_api_key` |
 | Real OpenAI integration | optional marked test (`@pytest.mark.integration`) |
 | Prompt regression | evaluation suite with gold examples |
+| Alembic against real PostgreSQL | optional marked integration test |
 
 ## Lint
 
 In addition to pytest:
 
 ```bash
-uv run ruff check app tests
+uv run ruff check app tests alembic
 ```
 
 Ruff checks style, imports, and basic issues based on `pyproject.toml`.

@@ -1,0 +1,6 @@
+Alembic migrations for Career AI.
+
+DATABASE_URL is read from application settings (see ``alembic/env.py``).
+Do not put a real connection string in ``alembic.ini``.
+
+Commands: see ``docs/development/database.md``.

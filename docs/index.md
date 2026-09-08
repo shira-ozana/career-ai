@@ -2,7 +2,7 @@
 
 Career AI helps a user manage and optimize the job-search process.
 
-The **running codebase** is still a Profile Analyzer CLI (structured JSON in, structured analysis out). The **product MVP and target architecture** are documented separately from that implementation.
+The **running codebase** is still a Profile Analyzer CLI (structured JSON in, structured analysis out). A PostgreSQL schema exists but is not wired to agents yet. The **product MVP and target architecture** are documented separately from that implementation.
 
 ## Where to document what
 
@@ -11,7 +11,7 @@ The **running codebase** is still a Profile Analyzer CLI (structured JSON in, st
 | System shape, layers, package layout | [`architecture/`](architecture/overview.md) |
 | Persistent domain, ingestion, data access | [`architecture/data.md`](architecture/data.md) |
 | A specific implemented feature or component | [`design/`](design/profile-agent.md) |
-| A durable architectural decision | `adr/` (create when needed) |
+| A durable architectural decision | [`adr/`](adr/001-postgresql.md) |
 | An end-to-end user or system path | `flows/` (create when needed) |
 | Setup, tooling, testing, conventions | [`development/`](development/documentation.md) |
 
@@ -29,11 +29,12 @@ flowchart LR
         E[Prompts]
         F[Tests]
         G[Config / .env]
+        P[PostgreSQL schema / Alembic]
     end
 
     subgraph Target["Proposed — not implemented"]
         H[Profile ingestion CV / LinkedIn]
-        I[Canonical Candidate Profile]
+        I[Canonical Candidate Profile wiring]
         J[LinkedIn optimization]
         K[Job catalog / matching]
         L[CV tailoring]
