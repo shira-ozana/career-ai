@@ -1,4 +1,4 @@
-# 7. LLM client – `StructuredLLM`
+# LLM client – `StructuredLLM`
 
 ## File
 

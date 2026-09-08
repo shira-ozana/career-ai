@@ -1,10 +1,15 @@
-# 5. Models (Pydantic) – data contracts
+# Models (Pydantic) – data contracts
 
 ## File
 
 `app/models/profile.py`
 
-## Why this is the most important MVP piece
+These models are the **implemented agent I/O contract** for the Profile Analyzer. They are not the persistent [Candidate Profile](../architecture/data.md#persistent-candidate-state).
+
+- `ProfileInput.skills` is `list[str]` with in-memory normalize/dedupe.
+- Persistence design treats **Skill** (and Company, and later Institution) as reusable entities. See [Data architecture](../architecture/data.md).
+
+## Why this is the most important implemented contract
 
 The models define:
 
@@ -139,4 +144,4 @@ See `tests/test_models_profile.py`:
 2. Rejection of `score=120`
 3. Acceptance of a valid payload
 
-Details: [10-tests.md](./10-tests.md)
+Details: [Testing](../development/testing.md)

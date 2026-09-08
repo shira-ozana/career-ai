@@ -1,0 +1,49 @@
+site_name: Career AI
+site_description: Personal career manager powered by AI agents
+docs_dir: docs
+site_dir: site
+strict: true
+validation:
+  omitted_files: warn
+  unrecognized_links: warn
+  absolute_links: ignore
+
+theme:
+  name: material
+  palette:
+    scheme: default
+  features:
+    - navigation.sections
+    - navigation.expand
+    - content.code.copy
+
+markdown_extensions:
+  - admonition
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+plugins:
+  - search
+
+nav:
+  - Home: index.md
+  - Architecture:
+      - Overview: architecture/overview.md
+      - Data architecture: architecture/data.md
+      - Project structure: architecture/project-structure.md
+  - Design:
+      - Profile agent: design/profile-agent.md
+      - Models: design/models.md
+      - Prompts: design/prompts.md
+      - LLM client: design/llm-client.md
+      - CLI: design/cli.md
+  - Development:
+      - Documentation: development/documentation.md
+      - Config and secrets: development/config.md
+      - Testing: development/testing.md

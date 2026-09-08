@@ -1,4 +1,4 @@
-# 2. Project structure
+# Project structure
 
 ## Directory tree (what exists)
 
@@ -25,14 +25,15 @@ career-ai/
 │   │   └── profile.py           # Done
 │   ├── tools/                   # Shared tools (LLM, etc.)
 │   │   └── llm.py               # Done
-│   ├── memory/                  # Future – RAG / memory
-│   ├── workflows/               # Future – Orchestrator
-│   └── api/                     # Future – FastAPI
+│   ├── memory/                  # Empty scaffold; not part of current MVP
+│   ├── workflows/               # Empty scaffold – proposed orchestration
+│   └── api/                     # Empty scaffold – future HTTP API
 ├── tests/                       # Tests
 ├── examples/                    # Sample inputs
-├── docs/                        # Documentation (this folder)
+├── docs/                        # MkDocs site – see below
 ├── scripts/                     # Helpers (git push)
 ├── docker/                      # Future
+├── mkdocs.yml                   # Docs site navigation
 ├── pyproject.toml               # Dependencies + tooling config
 ├── uv.lock                      # Locked dependency versions
 ├── .env.example                 # Secret template (no real values)
@@ -40,6 +41,23 @@ career-ai/
 ├── .gitignore
 └── README.md
 ```
+
+## Documentation layout
+
+```text
+docs/
+├── index.md                    # Docs home and folder map
+├── architecture/
+│   ├── overview.md             # Product, target vs implemented architecture
+│   ├── data.md                 # Persistence, ingestion, conceptual data model
+│   └── project-structure.md    # This page
+├── design/                     # Implemented feature and component design
+└── development/                # Setup, testing, documentation conventions
+```
+
+`adr/` and `flows/` are created when the first architectural decision or end-to-end flow is written. Do not add empty placeholder pages. The database engine is still an [open question](data.md#database-decision-open); add an ADR when it is decided.
+
+Guidelines: [Documentation](../development/documentation.md).
 
 ## Why this layout?
 
@@ -60,7 +78,8 @@ flowchart TB
         Prompts[prompts/]
         Tools[tools/]
         Config[config.py]
-        Memory[memory/ future]
+        Memory[memory/ unused scaffold]
+    end
     end
 
     CLI --> Agents
@@ -91,7 +110,7 @@ This lets us replace CLI with an API later without rewriting the agent.
 | `app/models/profile.py` | Validate and shape profile data |
 | `app/prompts/profile.py` | LLM instruction text |
 | `app/tools/llm.py` | Call OpenAI + parse structured output |
-| `app/agents/profile/agent.py` | Orchestrate the analysis |
+| `app/agents/profile/agent.py` | Run the analysis flow |
 | `app/cli.py` | Read JSON file and print result |
 | `tests/*` | Verify contracts and flow |
 
@@ -99,7 +118,9 @@ This lets us replace CLI with an API later without rewriting the agent.
 
 Folders like `app/agents/jobs/` currently contain only empty / nearly empty `__init__.py` files.
 
-This is intentional: they reserve a place in the architecture without premature implementation.
+This is intentional: they reserve a place in the package tree without premature implementation.
+
+They are **not** a frozen map of the [target architecture](overview.md#target-architecture-proposed). Current product components are Profile Ingestion / Analysis, LinkedIn Optimization, Job Search / Matching, CV Tailoring, and Orchestration. Folders such as `coach`, `content`, `skills`, and `memory/` come from an earlier scaffold and are outside the current product MVP.
 
 ## Root-level project files
 

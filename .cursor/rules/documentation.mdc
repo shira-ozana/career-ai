@@ -1,0 +1,26 @@
+---
+description: Keep /docs in the same change as meaningful code updates
+alwaysApply: true
+---
+
+# Documentation with code
+
+For every meaningful code change, check whether documentation under `/docs` must also be updated. Follow `docs/development/documentation.md`.
+
+Update relevant docs in the **same change** as the code when the change affects:
+
+- system architecture or package structure
+- models or public contracts
+- CLI behavior
+- configuration
+- a feature/component design
+- an end-to-end flow
+- a durable architectural decision
+
+Skip docs for trivial edits, formatting-only changes, behavior-preserving refactors, and test-only internals.
+
+If you add a new documentation page, also update `mkdocs.yml` `nav` in the same change.
+
+Do not invent architecture or product decisions. If a change requires a decision that is not already established, surface it instead of documenting an assumption.
+
+Keep documentation aligned with the actual implementation.

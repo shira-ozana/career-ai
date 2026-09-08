@@ -1,4 +1,4 @@
-# 4. Config and secrets
+# Config and secrets
 
 ## Main file
 

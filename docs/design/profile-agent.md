@@ -1,4 +1,4 @@
-# 8. Profile Analyzer Agent
+# Profile Analyzer Agent
 
 ## Files
 
@@ -7,7 +7,9 @@
 
 ## What the agent does
 
-Takes a professional profile + career goal and returns a structured analysis:
+**Implemented** scope: takes an already-structured professional profile + career goal and returns a structured analysis.
+
+This is not the full [Profile Ingestion / Analysis](../architecture/overview.md#profile-ingestion-analysis) component. The agent does not read a CV or LinkedIn PDF, persist a canonical profile, or resolve source conflicts.
 
 - Score
 - Strengths
@@ -64,9 +66,10 @@ In code:
 |----------|-----|
 | Does not read files from disk | CLI responsibility |
 | Does not print JSON | Interface responsibility |
-| Does not persist memory | Future Memory Agent |
-| Does not rewrite headline | Future LinkedIn Agent |
-| Does not search jobs | Future Job Market Agent |
+| Does not persist a Candidate Profile | Proposed data layer; see [Data architecture](../architecture/data.md) |
+| Does not ingest CV / LinkedIn sources | Proposed Profile Ingestion; see [Architecture](../architecture/overview.md) |
+| Does not rewrite LinkedIn copy | Proposed LinkedIn Optimization |
+| Does not search or match jobs | Proposed Job Search / Matching |
 
 The agent stays focused: **Analyze only**.
 
@@ -119,5 +122,6 @@ In an interview you can explain:
 
 - Weighted scoring (headline 20%, experience 40%, ...)
 - Comparison against a specific job description
-- Score history in Memory
 - Evaluation suite with gold examples
+
+Profile history and persistence belong to the canonical Candidate Profile and related history records, not a separate Memory/RAG agent. See [Data architecture](../architecture/data.md).

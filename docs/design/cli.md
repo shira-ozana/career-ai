@@ -1,4 +1,4 @@
-# 9. CLI – terminal interface
+# CLI – terminal interface
 
 ## Files
 
@@ -87,6 +87,6 @@ You can copy it and adapt it to your real profile.
 - Commands for other agents
 - Saving output to a file (`--output`)
 - Interactive mode
-- Direct LinkedIn URL ingestion
+- CV file and LinkedIn ingestion (URL or vanity/username, plus LinkedIn PDF for complete profile data)
 
-These are natural extensions after more agents exist.
+These are natural extensions after more agents exist. Product inputs are listed in [Architecture](../architecture/overview.md#initial-inputs).
