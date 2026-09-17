@@ -1,4 +1,10 @@
-"""Pydantic models for Profile Analyzer Agent I/O."""
+"""Profile Analyzer Agent input/output contracts.
+
+``ProfileInput`` / ``ExperienceItem`` / ``ProfileAnalysis`` are analysis-specific
+Pydantic I/O models. They are not the persisted ``CandidateProfile`` /
+``Experience`` ORM entities, and they are not the future ingestion contract
+for CV or LinkedIn sources.
+"""
 
 from __future__ import annotations
 
@@ -6,7 +12,11 @@ from pydantic import BaseModel, Field, field_validator
 
 
 class ExperienceItem(BaseModel):
-    """A single work experience entry from a LinkedIn/CV profile."""
+    """One work-experience entry in a Profile Analyzer input.
+
+    Company is a free-text name and duration is a display string. This is not
+    the persisted ``Experience`` row (which uses ``company_id`` and dates).
+    """
 
     title: str = Field(..., min_length=1, description="Job title")
     company: str = Field(..., min_length=1, description="Company name")
@@ -21,7 +31,12 @@ class ExperienceItem(BaseModel):
 
 
 class ProfileInput(BaseModel):
-    """User career profile input for analysis."""
+    """Analysis-specific input for ``ProfileAnalyzerAgent``.
+
+    Used by the CLI and agent to score an already-structured profile JSON
+    against a career goal. Do not treat this as the canonical persisted
+    ``CandidateProfile`` or as the future CV/LinkedIn ingestion model.
+    """
 
     name: str = Field(..., min_length=1, description="Full name")
     headline: str = Field(..., min_length=1, description="LinkedIn headline")

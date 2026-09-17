@@ -1,4 +1,4 @@
-"""Unit tests for ProfileInput / ProfileAnalysis models."""
+"""Unit tests for Profile Analyzer I/O contracts (ProfileInput / ProfileAnalysis)."""
 
 import pytest
 from pydantic import ValidationError

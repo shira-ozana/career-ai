@@ -76,11 +76,11 @@ Ensures `score=120` fails with `ValidationError`.
 
 Ensures a valid payload is constructed correctly.
 
-### `test_profile_agent_returns_structured_analysis`
+### `test_profile_agent.py`
 
 Tests the agent end-to-end **without OpenAI**:
 
-1. Creates `FakeStructuredLLM` returning a fixed result
+1. Creates `MockStructuredLLM` returning a fixed result
 2. Injects it via `ProfileAnalyzerAgent(llm=...)`
 3. Asserts the result matches expectations
 4. Asserts exactly one LLM call happened

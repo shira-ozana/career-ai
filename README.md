@@ -31,7 +31,7 @@ uv run mkdocs serve
 
 ## Features (current)
 
-- Typed profile input/output via Pydantic
+- Typed Profile Analyzer input/output via Pydantic (`ProfileInput` / `ProfileAnalysis`; not the persisted Candidate Profile)
 - Profile Analyzer Agent (`score`, strengths, weaknesses, missing skills, recommendations)
 - OpenAI Structured Outputs integration
 - CLI for local analysis
@@ -45,12 +45,11 @@ Product capabilities beyond this CLI are listed in [Architecture](./docs/archite
 ```text
 career-ai/
 ├── app/
-│   ├── agents/          # Independent agents (profile first)
+│   ├── agents/          # Independent agents (profile implemented)
 │   ├── db/              # SQLAlchemy models, engine, sessions
-│   ├── models/          # Pydantic domain models
+│   ├── models/          # Agent I/O contracts (Pydantic)
 │   ├── prompts/         # Prompt templates
 │   ├── tools/           # Shared tools (LLM client, etc.)
-│   ├── memory/          # Empty scaffold; not current MVP
 │   ├── workflows/       # Empty scaffold; proposed orchestration
 │   └── api/             # Empty scaffold; future HTTP API
 ├── alembic/             # Database migrations
@@ -71,7 +70,6 @@ career-ai/
 ## Setup
 
 ```bash
-cd ~/Downloads/career-ai
 uv sync --extra dev
 cp .env.example .env
 # Edit .env and set OPENAI_API_KEY

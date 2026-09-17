@@ -90,7 +90,7 @@ analysis = await llm.complete_structured(..., response_model=ProfileAnalysis)
 ## How we test without real OpenAI calls
 
 Tests do not call the real `StructuredLLM`.  
-They use `FakeStructuredLLM`, which returns a fixed result.
+They use `MockStructuredLLM`, which returns a fixed result.
 
 Benefits:
 

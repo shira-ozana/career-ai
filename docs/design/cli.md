@@ -26,7 +26,7 @@ career-ai analyze-profile <profile_path>
 
 | Argument | Meaning |
 |----------|---------|
-| `profile_path` | Path to a JSON file matching `ProfileInput` |
+| `profile_path` | Path to a JSON file matching the Profile Analyzer input contract (`ProfileInput`) |
 
 ## CLI flow
 

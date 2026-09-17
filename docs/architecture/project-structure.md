@@ -17,19 +17,15 @@ career-ai/
 │   │   ├── profile/             # Implemented
 │   │   │   ├── __init__.py
 │   │   │   └── agent.py
-│   │   ├── linkedin/            # Placeholder
-│   │   ├── resume/              # Placeholder
-│   │   ├── jobs/                # Placeholder
-│   │   ├── coach/               # Placeholder
-│   │   ├── content/             # Placeholder
-│   │   └── skills/              # Placeholder
-│   ├── models/                  # Shared Pydantic models
-│   │   └── profile.py           # Done
+│   │   ├── linkedin/            # Placeholder (proposed MVP)
+│   │   ├── resume/              # Placeholder (proposed MVP)
+│   │   └── jobs/                # Placeholder (proposed MVP)
+│   ├── models/                  # Agent I/O contracts (Pydantic)
+│   │   └── profile.py           # Profile Analyzer input/output
 │   ├── prompts/                 # Prompt templates
 │   │   └── profile.py           # Done
 │   ├── tools/                   # Shared tools (LLM, etc.)
 │   │   └── llm.py               # Done
-│   ├── memory/                  # Empty scaffold; not part of current MVP
 │   ├── workflows/               # Empty scaffold – proposed orchestration
 │   └── api/                     # Empty scaffold – future HTTP API
 ├── alembic/                     # Migrations
@@ -39,7 +35,6 @@ career-ai/
 ├── examples/                    # Sample inputs
 ├── docs/                        # MkDocs site – see below
 ├── scripts/                     # Helpers (git push)
-├── docker/                      # Future
 ├── alembic.ini
 ├── mkdocs.yml                   # Docs site navigation
 ├── pyproject.toml               # Dependencies + tooling config
@@ -84,12 +79,11 @@ flowchart TB
     end
 
     subgraph Shared["Shared infrastructure"]
-        Models[models/]
+        Models[models/ agent I/O]
         Prompts[prompts/]
         Tools[tools/]
         Config[config.py]
-        DB[db/]
-        Memory[memory/ unused scaffold]
+        DB[db/ persistence ORM]
     end
 
     CLI --> Agents
@@ -100,13 +94,12 @@ flowchart TB
     Tools --> Config
     DB -.-> Config
     Workflows -.-> Agents
-    Agents -.-> Memory
 ```
 
 ### Key principle
 
 - **`agents/`** = what the system can do (capabilities)
-- **`models/`** = how data looks (contracts)
+- **`models/`** = agent input/output contracts (not persistence, not ingestion)
 - **`prompts/`** = how we talk to the LLM (instructions)
 - **`tools/`** = how we connect outward (OpenAI, etc.)
 - **`db/`** = how domain state is stored (SQLAlchemy; not used by agents yet)
@@ -121,7 +114,7 @@ This lets us replace CLI with an API later without rewriting the agent.
 | `app/config.py` | Load settings and secrets |
 | `app/db/` | SQLAlchemy Base, engine/session, ORM models |
 | `alembic/` | Schema migrations |
-| `app/models/profile.py` | Validate and shape profile data |
+| `app/models/profile.py` | Profile Analyzer I/O contract (`ProfileInput` / `ProfileAnalysis`) |
 | `app/prompts/profile.py` | LLM instruction text |
 | `app/tools/llm.py` | Call OpenAI + parse structured output |
 | `app/agents/profile/agent.py` | Run the analysis flow |
@@ -130,11 +123,11 @@ This lets us replace CLI with an API later without rewriting the agent.
 
 ## What does "placeholder" mean?
 
-Folders like `app/agents/jobs/` currently contain only empty / nearly empty `__init__.py` files.
+Folders like `app/agents/jobs/` currently contain only a short status docstring in `__init__.py`.
 
 This is intentional: they reserve a place in the package tree without premature implementation.
 
-They are **not** a frozen map of the [target architecture](overview.md#target-architecture-proposed). Current product components are Profile Ingestion / Analysis, LinkedIn Optimization, Job Search / Matching, CV Tailoring, and Orchestration. Folders such as `coach`, `content`, `skills`, and `memory/` come from an earlier scaffold and are outside the current product MVP.
+They are **not** a frozen map of the [target architecture](overview.md#target-architecture-proposed). Current product components are Profile Ingestion / Analysis, LinkedIn Optimization, Job Search / Matching, CV Tailoring, and Orchestration. Earlier leftover folders (`coach`, `content`, `skills`, `memory`) were removed so the tree matches that map.
 
 ## Root-level project files
 

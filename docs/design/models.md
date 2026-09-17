@@ -1,10 +1,10 @@
-# Models (Pydantic) – data contracts
+# Models (Pydantic) – Profile Analyzer I/O contracts
 
 ## File
 
 `app/models/profile.py`
 
-These models are the **implemented agent I/O contract** for the Profile Analyzer. They are not the persistent [Candidate Profile](../architecture/data.md#persistent-candidate-state).
+These models are the **implemented agent I/O contract** for the Profile Analyzer. They are not the persistent [Candidate Profile](../architecture/data.md#persistent-candidate-state), and they are not the future CV/LinkedIn ingestion payload.
 
 - `ProfileInput.skills` is `list[str]` with in-memory normalize/dedupe.
 - Persistence treats **Skill** (and Company) as reusable ORM entities in `app/db/models/`. See [Data architecture](../architecture/data.md) and [Database](../development/database.md).
@@ -17,7 +17,7 @@ The models define:
 2. **What may come back** from the LLM
 3. **What the result looks like** even without opening agent code
 
-This is the system's internal API.
+This is the Profile Analyzer's internal I/O API, not the persistence or ingestion contract.
 
 ## Model diagram
 
@@ -54,7 +54,7 @@ classDiagram
 
 ## `ExperienceItem`
 
-One work-experience entry.
+One work-experience entry in the analyzer input. Company is a string and duration is a display string — not the persisted `Experience` ORM entity.
 
 | Field | Required? | Meaning |
 |-------|-----------|---------|
@@ -63,7 +63,9 @@ One work-experience entry.
 | `duration` | no | e.g. `2023 – Present` |
 | `description` | no | What you did / achievements |
 
-## `ProfileInput` – agent input
+## `ProfileInput` – Profile Analyzer input
+
+Analysis-only. The CLI validates a JSON file into this model and passes it to the agent. Do not reuse it as the canonical persistence model or as the future ingestion contract.
 
 | Field | Required? | Meaning |
 |-------|-----------|---------|

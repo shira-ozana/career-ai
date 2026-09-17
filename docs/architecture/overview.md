@@ -42,9 +42,9 @@ Job discovery and matching stay **conceptually distinct** even if the first impl
 
 ### Out of current product MVP
 
-The repository still has placeholder folders for `coach`, `content`, and `skills`, plus empty `memory/` (earlier notes mentioned RAG). Those are **not** part of the current product MVP. They remain scaffold only unless a later decision revives them.
+Leftover scaffold folders from an earlier layout (`coach`, `content`, `skills`, `memory`) are **not** part of the current product MVP and are not in the tree.
 
-**Future considerations** (not MVP): HTTP API, vector/semantic retrieval, career-coach / content / learning agents.
+**Future considerations** (not MVP): HTTP API (`app/api/` is an empty scaffold), vector/semantic retrieval, career-coach / content / learning agents.
 
 ## Target architecture (proposed)
 
@@ -142,7 +142,7 @@ flowchart LR
 
 | Component | Status | Key files |
 |-----------|--------|-----------|
-| Pydantic profile models | Done | `app/models/profile.py` |
+| Profile Analyzer I/O contracts | Done | `app/models/profile.py` |
 | Profile Analyzer Agent | Done | `app/agents/profile/agent.py` |
 | OpenAI Structured Outputs | Done | `app/tools/llm.py` |
 | Prompt templates | Done | `app/prompts/profile.py` |
@@ -151,11 +151,10 @@ flowchart LR
 | CLI | Done | `app/cli.py` |
 | Tests | Done | `tests/` |
 | Orchestrator / workflows | Empty | `app/workflows/` |
-| Memory | Empty | `app/memory/` |
 | FastAPI | Empty | `app/api/` |
-| Other agents | Placeholders | `linkedin`, `resume`, `jobs`, `coach`, `content`, `skills` |
+| Other agents | Placeholders | `linkedin`, `resume`, `jobs` |
 
-The Profile Agent came first because it defines a typed user-data contract for analysis. The repeatable implementation pattern is **Pydantic Input → Prompt → LLM Structured Output → Pydantic Output**. That pattern can remain for new agents; it does not by itself provide persistence, ingestion, or orchestration.
+The Profile Agent came first because it defines a typed **analysis** contract (`ProfileInput` → `ProfileAnalysis`). That contract is not the persisted Candidate Profile and is not the future ingestion payload. The repeatable implementation pattern is **Pydantic Input → Prompt → LLM Structured Output → Pydantic Output**. That pattern can remain for new agents; it does not by itself provide persistence, ingestion, or orchestration.
 
 ### Implemented pipeline
 
@@ -187,7 +186,7 @@ flowchart LR
         PA[ProfileAnalyzerAgent]
     end
 
-    subgraph L3["3. Domain Contracts"]
+    subgraph L3["3. Agent I/O Contracts"]
         PI[ProfileInput]
         PO[ProfileAnalysis]
     end
@@ -215,7 +214,7 @@ flowchart LR
 |-------|---------------------|----------------------|
 | Interface | How do we invoke it? | Agent + Models |
 | Agent | What is the business flow? | Models, Prompts, Tools |
-| Domain Contracts | What does the data look like? | Pydantic only |
+| Agent I/O Contracts | What does analysis data look like? | Pydantic only |
 | AI Infrastructure | How do we talk to the LLM? | OpenAI SDK + Settings |
 | Persistence foundation | How is domain state stored? | SQLAlchemy models; unused by agents today |
 
@@ -235,10 +234,10 @@ It only builds prompts and calls `StructuredLLM`.
 
 ### 3. Dependency injection for tests
 
-You can pass a fake `llm=` into the agent:
+You can pass a mock `llm=` into the agent:
 
 ```python
-ProfileAnalyzerAgent(llm=fake_llm)
+ProfileAnalyzerAgent(llm=MockStructuredLLM())
 ```
 
 Tests then need no real network calls.
@@ -279,7 +278,7 @@ sequenceDiagram
     A-->>I: typed result
 ```
 
-Placeholder package names (`linkedin`, `resume`, `jobs`, …) may be renamed or split when the proposed components are implemented. Do not treat folder names as a frozen component map.
+Placeholder package names (`linkedin`, `resume`, `jobs`) may be renamed or split when the proposed components are implemented. Do not treat folder names as a frozen component map.
 
 ## Scale and performance
 

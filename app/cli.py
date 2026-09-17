@@ -44,7 +44,7 @@ def main(argv: list[str] | None = None) -> None:
     analyze.add_argument(
         "profile_path",
         type=Path,
-        help="Path to a ProfileInput JSON file",
+        help="Path to a Profile Analyzer input JSON file (ProfileInput)",
     )
 
     args = parser.parse_args(argv)
