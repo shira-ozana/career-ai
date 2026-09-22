@@ -9,7 +9,7 @@
 
 **Implemented** scope: takes an already-structured professional profile + career goal and returns a structured analysis.
 
-This is not the full [Profile Ingestion / Analysis](../architecture/overview.md#profile-ingestion-analysis) component. The agent does not read a CV or LinkedIn PDF, persist a canonical profile, or resolve source conflicts.
+This is not the full [Profile Ingestion / Analysis](../architecture/overview.md#profile-ingestion-analysis) component. The agent is a **capability**: it scores an already-structured JSON profile. It does not read a CV or LinkedIn PDF, persist a canonical profile, or resolve source conflicts. Persistence belongs to an application service, not to this agent. See [ADR 003](../adr/003-application-owns-workflows.md).
 
 - Score
 - Strengths
@@ -66,10 +66,10 @@ In code:
 |----------|-----|
 | Does not read files from disk | CLI responsibility |
 | Does not print JSON | Interface responsibility |
-| Does not persist a Candidate Profile | Proposed data layer; see [Data architecture](../architecture/data.md) |
-| Does not ingest CV / LinkedIn sources | Proposed Profile Ingestion; see [Architecture](../architecture/overview.md) |
+| Does not persist a Candidate Profile | Next milestone: Profile Ingestion Service; see [Data architecture](../architecture/data.md) |
+| Does not ingest CV / LinkedIn sources | Proposed after the structured-JSON slice; see [Architecture](../architecture/overview.md) |
 | Does not rewrite LinkedIn copy | Proposed LinkedIn Optimization |
-| Does not search or match jobs | Proposed Job Search / Matching |
+| Does not search or match jobs | Proposed [Job Search](../architecture/job-search.md) (Discovery and Matching are separate) |
 
 The agent stays focused: **Analyze only**.
 
@@ -116,7 +116,7 @@ In an interview you can explain:
 2. Clear separation of concerns (Agent / Prompts / Tools)
 3. Structured Outputs instead of brittle parsing
 4. Tests with a fake LLM
-5. A clear path to multi-agent expansion
+5. A clear path from a capability to application-owned workflows in the modular monolith
 
 ## Natural next enhancements for this same agent
 

@@ -4,7 +4,7 @@
 
 `app/models/profile.py`
 
-These models are the **implemented agent I/O contract** for the Profile Analyzer. They are not the persistent [Candidate Profile](../architecture/data.md#persistent-candidate-state), and they are not the future CV/LinkedIn ingestion payload.
+These models are the **implemented agent I/O contract** for the Profile Analyzer. They are not the persistent [Candidate Profile](../architecture/data.md#persistent-candidate-state), they are not the future CV/LinkedIn ingestion payload, and they are not `CandidateProfileIngestionInput` (the next persistence contract; not implemented).
 
 - `ProfileInput.skills` is `list[str]` with in-memory normalize/dedupe.
 - Persistence treats **Skill** (and Company) as reusable ORM entities in `app/db/models/`. See [Data architecture](../architecture/data.md) and [Database](../development/database.md).

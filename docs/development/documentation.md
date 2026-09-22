@@ -19,6 +19,7 @@ Skip a docs update for typo-level edits, refactors that do not change behavior, 
 |----------------|--------|----------------------------|
 | System shape, layers, package layout | `docs/architecture/` | `overview.md` or a focused page |
 | Persistence, ingestion, domain data model | `docs/architecture/` | `data.md` |
+| Job Search pipeline and search execution | `docs/architecture/` | `job-search.md` |
 | A specific feature or component | `docs/design/` | `<component>.md` |
 | A durable architectural decision | `docs/adr/` | `NNN-short-title.md` |
 | An end-to-end user or system path | `docs/flows/` | `<flow-name>.md` |
@@ -37,6 +38,8 @@ Create an ADR in `docs/adr/` when the decision is expensive to reverse or future
 - Choosing or replacing an LLM provider or orchestration approach
 - Changing how agents share state or contracts
 - Introducing a new persistence or API boundary
+- Choosing modular-monolith vs independently deployed services
+- Changing whether agents or application services own workflows
 
 Do not write an ADR for local implementation details that are obvious from the code.
 

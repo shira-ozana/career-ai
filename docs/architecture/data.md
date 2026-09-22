@@ -10,22 +10,74 @@ Status of topics on this page:
 |-------|----------------|
 | User vs Candidate Profile | Decided |
 | AuthIdentity vs User | Decided; in the schema |
+| User-owned vs global catalog ownership | Decided; see [Ownership](#ownership) |
 | Structured ingestion, not wholesale raw docs | Decided |
 | Conflict detection + HITL | Decided |
-| Agents without unrestricted DB access | Proposed (do not implement yet) |
+| Application services own persistence and authorization | Decided; not implemented. [ADR 003](../adr/003-application-owns-workflows.md) |
 | Initial relational schema | **Implemented** (ORM + Alembic; not wired to agents) |
-| JobSearchRequest as search intent | Decided; in the schema |
-| JobMatch belongs to a search request | Decided; in the schema |
+| JobSearchRequest as user-owned search intent | Decided; in the schema under `CandidateProfile` |
+| SearchExecution | **Planned** — not in the schema |
+| JobMatch belongs to a search request + job | Decided; in the schema |
+| JobMatch first-discovered execution | **Planned** — field name deferred |
 | ResumeVersion (replaces TailoredCV) | Decided; in the schema |
 | Skill / Company normalization | Decided; in the schema |
+| Company future service ownership | **Open question** — do not redesign now |
 | Education / Institution | Future — not in this schema |
-| Active job catalog + freshness | Proposed |
+| Job status vs Job freshness | Decided conceptually; freshness columns **deferred** |
 | Object storage for source/resume files | Future consideration — not implemented |
-| Database engine | **Decided** — PostgreSQL |
+| One PostgreSQL database for the monolith | **Decided** and **implemented** |
 | JSONB for selectively flexible fields | Future consideration — not a current requirement |
 | Vector / semantic database | Future consideration — not a current requirement |
+| Database-per-service / distributed transactions | **Not** the current strategy |
 
-Setup, migrations, and package layout: [Database](../development/database.md). Decision record: [ADR 001](../adr/001-postgresql.md).
+Setup, migrations, and package layout: [Database](../development/database.md). Decision records: [ADR 001](../adr/001-postgresql.md), [ADR 002](../adr/002-modular-monolith.md). Job Search pipeline: [Job Search](job-search.md).
+
+## Ownership
+
+**Decided.** Logical ownership is independent of whether Career AI later extracts Job Search.
+
+```mermaid
+flowchart TB
+    subgraph UserOwned["CURRENT + DECIDED — user / career-owned"]
+        User --> AuthIdentity
+        User --> CandidateProfile
+        CandidateProfile --> Experience
+        CandidateProfile --> CandidateProfileSkill
+        CandidateProfile --> ResumeVersion
+        CandidateProfile --> JobSearchRequest
+        JobSearchRequest --> JobMatch
+        JobSearchRequest -.->|PLANNED| SearchExecution
+    end
+
+    subgraph Global["CURRENT + DECIDED — system / global"]
+        Company
+        Skill
+        Job
+    end
+
+    Experience --> Company
+    Job --> Company
+    CandidateProfileSkill --> Skill
+    JobMatch --> Job
+    JobMatch -.->|PLANNED first discovery| SearchExecution
+```
+
+Rules:
+
+- User-owned resources are only accessed or mutated in an authenticated actor context.
+- Application services enforce that ownership. Repositories are not the sole authorization layer.
+- Global catalog rows (`Job`, `Company`, `Skill`) are shared system data, not owned by a search or a user.
+- `JobMatch` is user-specific **through** its `JobSearchRequest`.
+- `JobSearchRequest` is persistent search intent. It is not a search-engine run.
+- Search history belongs to Career AI user state and must survive replacement or extraction of the Job Search implementation.
+
+### Current persistence vs logical ownership
+
+**Implemented:** `job_search_requests.candidate_profile_id` references `CandidateProfile`, which is 1:1 with `User`. That is compatible with user-owned intent today.
+
+**Not decided now:** whether `JobSearchRequest` should later hang directly off `User` instead of `CandidateProfile`. Re-parenting is not required for this architecture alignment.
+
+Cascade delete from `CandidateProfile` to `JobSearchRequest` is the current schema. That is a profile-lifecycle behavior, not a statement that search intent belongs to a future Job Search service.
 
 ## Persistent candidate state
 
@@ -74,6 +126,8 @@ Original source files will eventually live in **object storage**. Meaningful par
 
 Vector / semantic retrieval is **not** a current requirement. Reconsider it only if a concrete use case needs it.
 
+The next implementation milestone does **not** ingest files. It persists already-structured JSON. See [Next implementation milestone](overview.md#next-implementation-milestone).
+
 ## Conflicting data and human-in-the-loop
 
 **Decided.** **Not implemented.**
@@ -89,33 +143,44 @@ CV and LinkedIn will disagree. The system must not silently pick a winner.
 
 Downstream agents must not treat unresolved critical information as verified truth.
 
-Conflict/provenance tables are **not** part of the current schema.
+Conflict/provenance tables are **not** part of the current schema. The structured-JSON Profile Ingestion slice does not require them.
 
 ## Data access principles
 
-**Proposed.** Do not implement this layer yet.
+**Decided.** Not implemented. The next Profile Ingestion slice introduces the first application service and repository.
 
-Agents should not receive unrestricted direct database access.
-
-Preferred flow:
+Avoid:
 
 ```text
-Agent
-  → Data Access / Service Layer
-    → Authorization + Validation
-      → Database
+API → Agent → direct DB access
+```
+
+Prefer:
+
+```text
+API / CLI
+  → Application / Workflow
+    → Domain / Application Service
+      → Agent capability when needed
+        → Repository
+          → PostgreSQL
 ```
 
 Principles:
 
+- The application layer owns sequencing, persistence, transactions, authorization, retries, and status handling.
+- Agents are capabilities with explicit input/output contracts.
+- Do not pass SQLAlchemy ORM objects across module boundaries where a stable contract should exist.
 - **Least privilege** — each caller gets only the operations it needs
-- **Read-only access** where appropriate
 - **Controlled writes** — not ad-hoc agent updates to canonical data
 - **Validation before persistent changes**
 - **Auditability** of reads/writes that matter
 - **HITL approval** for important changes to canonical user data where appropriate
+- Repositories load and store data. They are not the authorization system.
 
 The current codebase has ORM models, engine/session helpers, and an Alembic migration. It does **not** yet have repositories, a service layer, or Agent → DB integration.
+
+For a future Job Search extraction, prefer a transport-friendly contract such as `CandidateSearchContext` / `SearchExecutionRequest`. Today that may be an in-process Python object.
 
 ## Implemented relational schema
 
@@ -123,23 +188,23 @@ The current codebase has ORM models, engine/session helpers, and an Alembic migr
 
 ### Core entities
 
-| Entity | Role |
-|--------|------|
-| User | Application identity and contact information |
-| AuthIdentity | External authentication subject linked to a User |
-| CandidateProfile | Canonical professional profile |
-| Experience | One role/period on the profile |
-| Skill | Reusable skill entity |
-| CandidateProfileSkill | Profile ↔ Skill junction |
-| Company | Reusable organization (experience and jobs) |
-| Job | System-level catalog entry; not owned by a user |
-| JobSearchRequest | Intent/criteria for one job search |
-| JobMatch | Match between one search request and one job |
-| ResumeVersion | A meaningful resume representation (original, generic, or tailored) |
+| Entity | Role | Ownership |
+|--------|------|-----------|
+| User | Application identity and contact information | User |
+| AuthIdentity | External authentication subject linked to a User | User |
+| CandidateProfile | Canonical professional profile | User |
+| Experience | One role/period on the profile | User, via profile |
+| Skill | Reusable skill entity | Global catalog |
+| CandidateProfileSkill | Profile ↔ Skill junction | User, via profile |
+| Company | Reusable organization (experience and jobs) | Global; future split **unresolved** |
+| Job | System-level catalog entry | Global catalog |
+| JobSearchRequest | Intent/criteria for one job search | User-owned intent |
+| JobMatch | Match between one search request and one job | User, via search request |
+| ResumeVersion | A meaningful resume representation (original, generic, or tailored) | User, via profile |
 
-**Education** and **Institution** belong in the candidate domain. They are not in this schema. Workflow/conversation state is a separate future concept and is not persisted here.
+**Not in this schema:** `SearchExecution`, education/institution, freshness columns, source-policy columns, `SourceExecution`, conflict/provenance tables, workflow/conversation state.
 
-### Relationships
+### Relationships (implemented)
 
 ```text
 User                1 : 1    CandidateProfile
@@ -158,7 +223,7 @@ JobMatch            0 : N    ResumeVersion      (optional; used for tailored res
 `CandidateProfile` vs `JobSearchRequest`:
 
 - **CandidateProfile** answers: who is this candidate professionally?
-- **JobSearchRequest** answers: what does this candidate want to search for right now?
+- **JobSearchRequest** answers: what does this candidate want to search for?
 - A candidate can run multiple searches. `target_title` belongs on `JobSearchRequest`, not on `CandidateProfile`.
 
 `JobMatch` is the result of matching **one search request** to **one job**, not a direct CandidateProfile ↔ Job table. It holds:
@@ -168,6 +233,8 @@ JobMatch            0 : N    ResumeVersion      (optional; used for tailored res
 - status
 - timestamps
 
+Uniqueness **implemented:** one `JobMatch` per (`JobSearchRequest`, `Job`). Repeated executions must not create duplicate matches merely because the same job was rediscovered.
+
 `ResumeVersion` replaces the earlier conceptual `TailoredCV` entity. It represents a persisted resume state, not every conversational edit:
 
 - **original** — the uploaded/source resume representation (no `JobMatch` required)
@@ -176,7 +243,9 @@ JobMatch            0 : N    ResumeVersion      (optional; used for tailored res
 
 `file_reference` is metadata for a future object-storage path. Object storage itself is not implemented. Intermediate editing drafts are not retained as rows.
 
-### Entity-relationship diagram
+### Entity-relationship diagram (implemented)
+
+This diagram is the **current** schema. Planned tables are not included here.
 
 ```mermaid
 erDiagram
@@ -193,6 +262,35 @@ erDiagram
     CandidateProfile ||--o{ ResumeVersion : has
     JobMatch ||--o{ ResumeVersion : may_tailor
 ```
+
+### Planned relationships (not in the schema)
+
+**Planned.** Do not treat this as the current database.
+
+```mermaid
+erDiagram
+    JobSearchRequest ||--o{ SearchExecution : runs
+    SearchExecution ||--o{ JobMatch : first_discovered_in
+    Job ||--o{ JobMatch : matched_to
+    JobSearchRequest ||--o{ JobMatch : produces
+```
+
+`JobSearchRequest` 1:N `SearchExecution`:
+
+- `JobSearchRequest` = persistent search intent
+- `SearchExecution` = one concrete attempt/run of that search
+
+Conceptual `SearchExecution` lifecycle (**planned**, not an implemented enum):
+
+```text
+PENDING → RUNNING → COMPLETED | PARTIAL | FAILED
+```
+
+`JobMatch` should retain the ability to identify the execution in which a match/job was **first** discovered (`discovered_in_execution` / `first_matched_execution`). The exact field name and nullability are decided **before** the migration that adds it.
+
+Do **not** introduce full N:M execution history between `JobMatch` and `SearchExecution` now. If later access patterns need every execution in which a job appeared, add that then.
+
+Do **not** design `SourceExecution` persistence yet. It is architecturally anticipated and deferred until the detailed Job Search flow is designed.
 
 ## Normalization
 
@@ -220,6 +318,8 @@ Today's agent contract still uses `list[str]` on `ProfileInput`. That is an I/O 
 
 Experience stores `company_id`, not a duplicated company name.
 
+**Open question:** which future service would own `Company` if Job Search is extracted. Do not redesign `Company` now.
+
 ### Institutions
 
 Educational institutions may similarly be reusable entities, connected through `Education` with relationship-specific data such as degree, field of study, and dates. **Not in the current schema.**
@@ -230,21 +330,45 @@ Do not create entities for every string. Free-form descriptions and values with 
 
 ## Job catalog and freshness
 
-**Proposed.** The `Job` table exists. Do not design or implement the external job-ingestion pipeline yet.
+**Decided** conceptually. The `Job` table exists. Catalog refresh, external ingestion, and freshness columns are **not implemented**.
 
 `Job` is a **system-level** entity. It is not owned by an individual user. One job may match many search requests.
 
-Direction: maintain an **active catalog** of jobs rather than starting every user search entirely from external sources.
+The internal Job Catalog is **always** the first search source. External discovery **enriches and refreshes** that catalog. It must not create a separate temporary universe of jobs. Pipeline: [Job Search](job-search.md).
 
-The system should consider:
+### Status is not freshness
+
+`jobs.status` currently allows `active` or `closed`. Status does not say whether that information was verified today or a month ago.
+
+The architecture should support freshness metadata, for example:
+
+- `first_seen_at`
+- `last_seen_at`
+- `last_verified_at`
+
+Do **not** blindly add all three. Exact column names, nullability, and TTL are deferred until the Job Search / catalog flow is implemented.
+
+`updated_at` on `Job` is an ORM row timestamp. It is **not** a freshness/verification clock.
+
+### Two different clocks
+
+| Clock | Answers | Example |
+|-------|---------|---------|
+| SearchExecution | When did this search run / when was this match discovered? | `SearchExecution` timestamps (**planned**) |
+| Job freshness | When did we last verify that this job is still relevant/active? | freshness columns (**deferred**) |
+
+Keep these concerns separate.
+
+Before important actions involving a job — generating a tailored CV, beginning an application, other time-sensitive actions — the application should be able to perform **targeted verification of that individual Job** if freshness is insufficient. That must not require rerunning the entire search.
+
+Direction, not a selected policy:
 
 - periodic refresh of job status and data
-- `last_checked_at` (or equivalent) freshness metadata
-- an on-demand freshness check before important actions when appropriate
-- active / closed job lifecycle (`jobs.status` currently allows `active` or `closed`)
+- on-demand freshness check before important actions
+- active / closed job lifecycle
 - relevance filtering and ranking **before** persisting user-specific `JobMatch` rows
 
-Trade-off: fresher data versus external calls, latency, and cost. Catalog refresh policy is not decided beyond these constraints.
+Trade-off: fresher data versus external calls, latency, and cost.
 
 ## Resume file storage
 
@@ -263,9 +387,28 @@ No object-storage product is selected. `file_reference` is a string placeholder 
 
 Workflow and agent conversational state will be designed later with orchestration. **Do not** treat `ResumeVersion` as a chat-log or workflow-state table.
 
-## Database decision
+## Database strategy
 
-**Decided.** PostgreSQL is the primary relational database. Supabase is the current hosted PostgreSQL provider for development. The application depends on standard PostgreSQL and SQLAlchemy abstractions, not Supabase-specific database APIs.
+**Decided** and **implemented.**
+
+Today:
+
+- one PostgreSQL database
+- SQLAlchemy 2.x
+- Alembic
+- one deployable backend
+
+This is intentional.
+
+Do **not** introduce:
+
+- database-per-service
+- distributed transactions
+- service-specific databases
+
+Logical ownership boundaries should nevertheless stay clear so a later split remains possible.
+
+Supabase is the current hosted PostgreSQL provider for development. The application depends on standard PostgreSQL and SQLAlchemy abstractions, not Supabase-specific database APIs.
 
 See [ADR 001: PostgreSQL with SQLAlchemy](../adr/001-postgresql.md).
 
@@ -280,3 +423,20 @@ PostgreSQL fits this domain because:
 JSONB remains a **future option** for selectively flexible fields. It is not used in the current schema.
 
 MongoDB / document storage was considered while the model was still open. The domain is not a single nested Candidate Profile blob; it is a graph of reusable, constrained entities.
+
+## Future schema changes implied by this architecture
+
+These are **not** in the current migration. They are expected when the related flow is designed:
+
+| Change | When |
+|--------|------|
+| `SearchExecution` table (`JobSearchRequest` 1:N) | Job Search implementation |
+| `JobMatch` first-discovered-execution foreign key | Same design pass as `SearchExecution`; name chosen before migrate |
+| Job freshness column(s) | Catalog / Job Search flow design |
+| External source-policy persistence | Job Search flow design; avoid omitted-vs-empty array ambiguity |
+| `SourceExecution` | Explicitly later than `SearchExecution` |
+| N:M match ↔ execution history | Only if access patterns require it |
+| Education / Institution | Candidate-domain expansion |
+| Conflict / provenance tables | Multi-source CV/LinkedIn ingestion |
+
+Do not add these columns or tables in the Profile Ingestion slice.

@@ -2,7 +2,9 @@
 
 Career AI helps a user manage and optimize the job-search process.
 
-The **running codebase** is still a Profile Analyzer CLI (structured JSON in, structured analysis out). A PostgreSQL schema exists but is not wired to agents yet. The **product MVP and target architecture** are documented separately from that implementation.
+The **running codebase** is a Profile Analyzer CLI (structured JSON in, structured analysis out) plus a PostgreSQL schema that is not wired to agents yet. The deployable shape is a **modular monolith** — one backend, one database — not microservices.
+
+The **product MVP and planned architecture** are documented separately from that implementation.
 
 ## Where to document what
 
@@ -10,6 +12,7 @@ The **running codebase** is still a Profile Analyzer CLI (structured JSON in, st
 |-----------------------|----------|
 | System shape, layers, package layout | [`architecture/`](architecture/overview.md) |
 | Persistent domain, ingestion, data access | [`architecture/data.md`](architecture/data.md) |
+| Job Search pipeline (planned) | [`architecture/job-search.md`](architecture/job-search.md) |
 | A specific implemented feature or component | [`design/`](design/profile-agent.md) |
 | A durable architectural decision | [`adr/`](adr/001-postgresql.md) |
 | An end-to-end user or system path | `flows/` (create when needed) |
@@ -32,25 +35,31 @@ flowchart LR
         P[PostgreSQL schema / Alembic]
     end
 
-    subgraph Target["Proposed — not implemented"]
-        H[Profile ingestion CV / LinkedIn]
-        I[Canonical Candidate Profile wiring]
-        J[LinkedIn optimization]
-        K[Job catalog / matching]
-        L[CV tailoring]
-        M[Orchestration]
-        N[Data access layer]
+    subgraph Next["Next milestone — not implemented"]
+        Ing[Profile Ingestion Service]
+        Repo[Repository]
+    end
+
+    subgraph Planned["Planned — not implemented"]
+        H[CV / LinkedIn ingestion]
+        K[SearchExecution / catalog-first search]
+        L[Matching / JobMatch wiring]
+        M[CV tailoring]
+        N[Application workflows]
     end
 
     A --> C
     B --> C
     E --> C
     D --> C
-    C -.-> H
-    H -.-> I
+    P -.-> Ing
+    Ing -.-> Repo
+    Repo -.-> P
+    Ing -.-> H
+    K -.-> L
 ```
 
-Details: [Architecture overview](architecture/overview.md) · [Data architecture](architecture/data.md)
+Details: [Architecture overview](architecture/overview.md) · [Data architecture](architecture/data.md) · [Job Search](architecture/job-search.md)
 
 ## Quick start
 

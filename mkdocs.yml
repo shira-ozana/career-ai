@@ -36,6 +36,7 @@ nav:
   - Architecture:
       - Overview: architecture/overview.md
       - Data architecture: architecture/data.md
+      - Job Search: architecture/job-search.md
       - Project structure: architecture/project-structure.md
   - Design:
       - Profile agent: design/profile-agent.md
@@ -45,6 +46,9 @@ nav:
       - CLI: design/cli.md
   - Decisions:
       - 001 PostgreSQL: adr/001-postgresql.md
+      - 002 Modular monolith: adr/002-modular-monolith.md
+      - 003 Application-owned workflows: adr/003-application-owns-workflows.md
+      - 004 Catalog-first Job Search: adr/004-catalog-first-job-search.md
   - Development:
       - Documentation: development/documentation.md
       - Config and secrets: development/config.md

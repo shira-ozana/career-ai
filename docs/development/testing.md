@@ -92,7 +92,7 @@ Tests the agent end-to-end **without OpenAI**:
 Inspects SQLAlchemy metadata only (no database connection):
 
 - expected tables are present
-- unimplemented entities (`TailoredCV`, workflow state, education) are absent
+- unimplemented entities (`TailoredCV`, workflow state, education, `SearchExecution`) are absent
 - `CandidateProfile` has no `target_title`; `JobSearchRequest` does
 - `JobMatch` references `JobSearchRequest` + `Job`, with a uniqueness constraint
 - `ResumeVersion` allows original/generic/tailored and a nullable `job_match_id`

@@ -84,9 +84,9 @@ You can copy it and adapt it to your real profile.
 
 ## What the CLI still lacks
 
-- Commands for other agents
+- Commands that call application services (the next slice is Profile Ingestion, not another agent command)
 - Saving output to a file (`--output`)
 - Interactive mode
 - CV file and LinkedIn ingestion (URL or vanity/username, plus LinkedIn PDF for complete profile data)
 
-These are natural extensions after more agents exist. Product inputs are listed in [Architecture](../architecture/overview.md#initial-inputs).
+Product inputs and the next milestone are listed in [Architecture](../architecture/overview.md).

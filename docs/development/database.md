@@ -2,7 +2,9 @@
 
 PostgreSQL persistence foundation: SQLAlchemy 2.x ORM, psycopg 3, and Alembic. Agents and the CLI do **not** use the database yet.
 
-Conceptual model: [Data architecture](../architecture/data.md). Decision: [ADR 001](../adr/001-postgresql.md).
+This is **one** PostgreSQL database for the modular monolith. That is intentional. Do not introduce database-per-service, distributed transactions, or service-specific databases.
+
+Conceptual model: [Data architecture](../architecture/data.md). Decisions: [ADR 001](../adr/001-postgresql.md), [ADR 002](../adr/002-modular-monolith.md).
 
 ## Package layout
 
@@ -49,6 +51,8 @@ Review autogenerate output before applying it. Do not run destructive migrations
 
 Initial revision: `244a3d756668_initial_schema`.
 
+The current schema does **not** include `SearchExecution`, Job freshness columns, source-policy columns, or a first-discovered-execution pointer on `JobMatch`. Those are planned with Job Search and must not be added opportunistically. See [Data architecture](../architecture/data.md#future-schema-changes-implied-by-this-architecture).
+
 ## Tests
 
 Unit tests inspect model metadata and configuration. They do **not** require PostgreSQL or a network.
@@ -57,7 +61,8 @@ Integration tests that apply migrations against a real PostgreSQL database are a
 
 ## What this layer is not
 
-- Not a repository or service layer
+- Not a repository or application-service layer (those are the next Profile Ingestion milestone)
 - Not Agent → DB integration
 - Not Supabase Auth, Storage, or SDK usage
 - Not object storage, queues, cache, or workflow state
+- Not a per-service database or a Job Search microservice schema

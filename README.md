@@ -8,7 +8,7 @@ Career AI helps a user manage and optimize the job-search process: ingest CV and
 
 **Implemented:** Profile Analyzer Agent (CLI) with OpenAI Structured Outputs, plus a PostgreSQL persistence foundation (SQLAlchemy / Alembic) that is not yet used by agents.
 
-**Product MVP and target architecture** (ingestion, matching, CV tailoring, orchestration, data-access layer) are documented in [`docs/`](./docs/index.md).
+Career AI is a **modular monolith** (one backend, one PostgreSQL database), not a microservice system. **Product MVP and planned architecture** (ingestion, catalog-first job search, matching, CV tailoring, application services) are documented in [`docs/`](./docs/index.md).
 
 ## Documentation
 
@@ -16,7 +16,7 @@ Detailed docs live in [`docs/`](./docs/index.md) and are built with MkDocs.
 
 | Folder | Use for |
 |--------|---------|
-| [`docs/architecture/`](./docs/architecture/overview.md) | Product, system architecture, [data model](./docs/architecture/data.md), package layout |
+| [`docs/architecture/`](./docs/architecture/overview.md) | Modular monolith, [data model](./docs/architecture/data.md), [Job Search](./docs/architecture/job-search.md), package layout |
 | [`docs/design/`](./docs/design/profile-agent.md) | Feature / component design |
 | [`docs/adr/`](./docs/adr/001-postgresql.md) | Architectural decisions |
 | `docs/flows/` | End-to-end flows (create when needed) |
@@ -45,12 +45,12 @@ Product capabilities beyond this CLI are listed in [Architecture](./docs/archite
 ```text
 career-ai/
 ├── app/
-│   ├── agents/          # Independent agents (profile implemented)
+│   ├── agents/          # Agent capabilities (profile implemented)
 │   ├── db/              # SQLAlchemy models, engine, sessions
 │   ├── models/          # Agent I/O contracts (Pydantic)
 │   ├── prompts/         # Prompt templates
 │   ├── tools/           # Shared tools (LLM client, etc.)
-│   ├── workflows/       # Empty scaffold; proposed orchestration
+│   ├── workflows/       # Empty scaffold; proposed application/workflow
 │   └── api/             # Empty scaffold; future HTTP API
 ├── alembic/             # Database migrations
 ├── examples/            # Sample payloads
@@ -108,18 +108,21 @@ uv run pytest
 
 ## Roadmap
 
-See [Architecture](./docs/architecture/overview.md) and [Data architecture](./docs/architecture/data.md) for the current product MVP. PostgreSQL is the selected database ([ADR 001](./docs/adr/001-postgresql.md)).
+See [Architecture](./docs/architecture/overview.md), [Data architecture](./docs/architecture/data.md), and [Job Search](./docs/architecture/job-search.md). PostgreSQL is the selected database ([ADR 001](./docs/adr/001-postgresql.md)). The system is a modular monolith ([ADR 002](./docs/adr/002-modular-monolith.md)).
 
 Direction, not a delivery schedule:
 
-1. Profile ingestion from CV and LinkedIn, with conflict handling
-2. Wire agents to the canonical Candidate Profile schema
-3. LinkedIn optimization, job catalog/matching, CV tailoring
-4. Orchestration and a data-access layer
-5. HTTP API when an interface beyond CLI is needed
+1. **Next:** Profile Ingestion Service — structured JSON → canonical `CandidateProfile` in PostgreSQL
+2. Profile ingestion from CV and LinkedIn, with conflict handling
+3. LinkedIn optimization
+4. Catalog-first Job Search (`SearchExecution`, discovery, matching)
+5. CV tailoring
+6. HTTP API when an interface beyond CLI is needed
+
+Do not treat queues, workers, or a Job Search microservice as current work.
 
 ## Learning goals
 
 - Professional Python (typing, Pydantic, async, testing)
 - Modern AI tooling (OpenAI, Structured Outputs, agents)
-- Portfolio-grade multi-agent system design
+- Portfolio-grade modular monolith with extractable module boundaries

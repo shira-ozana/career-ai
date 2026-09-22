@@ -26,7 +26,7 @@ career-ai/
 │   │   └── profile.py           # Done
 │   ├── tools/                   # Shared tools (LLM, etc.)
 │   │   └── llm.py               # Done
-│   ├── workflows/               # Empty scaffold – proposed orchestration
+│   ├── workflows/               # Empty scaffold – proposed application/workflow
 │   └── api/                     # Empty scaffold – future HTTP API
 ├── alembic/                     # Migrations
 │   ├── env.py
@@ -51,13 +51,17 @@ career-ai/
 docs/
 ├── index.md                    # Docs home and folder map
 ├── architecture/
-│   ├── overview.md             # Product, target vs implemented architecture
-│   ├── data.md                 # Persistence, ingestion, relational schema
+│   ├── overview.md             # Modular monolith, layers, current vs planned
+│   ├── data.md                 # Persistence, ownership, relational schema
+│   ├── job-search.md           # Planned catalog-first Job Search
 │   └── project-structure.md    # This page
 ├── design/                     # Implemented feature and component design
 ├── development/                # Setup, testing, documentation conventions
 └── adr/
-    └── 001-postgresql.md       # PostgreSQL + SQLAlchemy decision
+    ├── 001-postgresql.md
+    ├── 002-modular-monolith.md
+    ├── 003-application-owns-workflows.md
+    └── 004-catalog-first-job-search.md
 ```
 
 `flows/` is created when the first end-to-end flow is written. Do not add empty placeholder pages.
@@ -73,9 +77,13 @@ flowchart TB
         API[api/ future]
     end
 
-    subgraph Domain["Business logic"]
+    subgraph App["Application — decided, mostly not implemented"]
+        Workflows[workflows/ scaffold]
+        Services[application services planned]
+    end
+
+    subgraph Capabilities["Agent capabilities"]
         Agents[agents/*]
-        Workflows[workflows/ future]
     end
 
     subgraph Shared["Shared infrastructure"]
@@ -84,28 +92,36 @@ flowchart TB
         Tools[tools/]
         Config[config.py]
         DB[db/ persistence ORM]
+        Repos[repositories planned]
     end
 
     CLI --> Agents
-    API -.-> Agents
+    CLI -.-> Services
+    API -.-> Services
+    Services --> Agents
+    Services --> Repos
     Agents --> Models
     Agents --> Prompts
     Agents --> Tools
     Tools --> Config
+    Repos --> DB
     DB -.-> Config
-    Workflows -.-> Agents
+    Workflows -.-> Services
 ```
+
+**Implemented today:** CLI → Profile Analyzer agent. Application services and repositories do not exist yet. They are the next Profile Ingestion milestone, not extra deployables.
 
 ### Key principle
 
-- **`agents/`** = what the system can do (capabilities)
+- **`agents/`** = capabilities (AI/specialized work), not workflow owners
 - **`models/`** = agent input/output contracts (not persistence, not ingestion)
 - **`prompts/`** = how we talk to the LLM (instructions)
 - **`tools/`** = how we connect outward (OpenAI, etc.)
 - **`db/`** = how domain state is stored (SQLAlchemy; not used by agents yet)
 - **`cli.py` / `api/`** = how the user invokes the system
+- **application services / repositories** = planned; they own persistence, transactions, and authorization
 
-This lets us replace CLI with an API later without rewriting the agent.
+This lets us replace CLI with an API later without rewriting capabilities. The API should call application services, not agents directly. See [ADR 003](../adr/003-application-owns-workflows.md).
 
 ## File → responsibility map
 
@@ -127,7 +143,7 @@ Folders like `app/agents/jobs/` currently contain only a short status docstring 
 
 This is intentional: they reserve a place in the package tree without premature implementation.
 
-They are **not** a frozen map of the [target architecture](overview.md#target-architecture-proposed). Current product components are Profile Ingestion / Analysis, LinkedIn Optimization, Job Search / Matching, CV Tailoring, and Orchestration. Earlier leftover folders (`coach`, `content`, `skills`, `memory`) were removed so the tree matches that map.
+They are **not** a frozen map of the [modular monolith components](overview.md#target-product-components-proposed). Current product components are Profile Ingestion / Analysis, LinkedIn Optimization, Job Discovery, Matching, CV Tailoring, and Application / Workflow. Discovery and Matching may share a package at first; they stay separate responsibilities. Earlier leftover folders (`coach`, `content`, `skills`, `memory`) were removed so the tree matches that map.
 
 ## Root-level project files
 

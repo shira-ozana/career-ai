@@ -12,7 +12,7 @@ The original evaluation was between a relational/PostgreSQL-style store and a Mo
 
 As the model solidified, the important operations became cross-entity: uniqueness and foreign keys, filtering and sorting matches, joining search intent to jobs and companies, and reusing Company and Skill identities.
 
-A hosted PostgreSQL database (currently Supabase) is available for development. The application should not depend on vendor-specific database APIs.
+A hosted PostgreSQL database (currently Supabase) is available for development. The application should not depend on vendor-specific database APIs. Career AI is a modular monolith: one PostgreSQL database for the whole backend until an extraction is justified. See [ADR 002](002-modular-monolith.md).
 
 ## Decision
 
