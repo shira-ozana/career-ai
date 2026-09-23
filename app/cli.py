@@ -10,9 +10,10 @@ import sys
 from pathlib import Path
 
 from app.agents.profile import ProfileAnalyzerAgent, ProfileExtractionAgent
-from app.config import get_settings
+from app.config import Settings, get_settings
 from app.models.profile import ProfileInput
 from app.models.profile_ingestion import ProfileIngestionRequest
+from app.tools.llm import StructuredLLM, StructuredLLMClient
 from app.tools.mock_llm import MockStructuredLLM
 from app.workflows.profile_ingestion import (
     ProfileIngestionFlow,
@@ -36,16 +37,32 @@ async def _run_profile_analysis(profile_path: Path) -> int:
     return 0
 
 
-async def _run_profile_extraction(request_path: Path, *, use_mock: bool) -> int:
-    raw = json.loads(request_path.read_text(encoding="utf-8"))
-    request = ProfileIngestionRequest.model_validate(raw)
-    if use_mock:
+def _resolve_extract_provider(parser: argparse.ArgumentParser, args: argparse.Namespace) -> str:
+    """Resolve extract-profile provider. Default remains OpenAI."""
+    if args.mock and args.provider not in {None, "mock"}:
+        parser.error("--mock cannot be combined with a different --provider")
+    if args.mock or args.provider == "mock":
+        return "mock"
+    if args.provider is None:
+        return "openai"
+    return str(args.provider)
+
+
+def _extraction_llm(provider: str, settings: Settings) -> StructuredLLMClient:
+    if provider == "mock":
         logging.getLogger(__name__).info(
             "extract-profile using MockStructuredLLM (no external API)"
         )
-        agent = ProfileExtractionAgent(llm=MockStructuredLLM())
-    else:
-        agent = ProfileExtractionAgent()
+        return MockStructuredLLM()
+    if provider == "openai":
+        logging.getLogger(__name__).info("extract-profile using OpenAI StructuredLLM")
+        return StructuredLLM(settings=settings)
+    msg = f"Unsupported extract-profile provider: {provider}"
+    raise ValueError(msg)
+
+
+async def _emit_extraction(request: ProfileIngestionRequest, llm: StructuredLLMClient) -> int:
+    agent = ProfileExtractionAgent(llm=llm)
     flow = ProfileIngestionFlow(agent=agent)
     try:
         result = await flow.run(request)
@@ -54,6 +71,33 @@ async def _run_profile_extraction(request_path: Path, *, use_mock: bool) -> int:
         return 1
     print(result.model_dump_json(indent=2))
     return 0
+
+
+async def _run_profile_extraction(
+    request_path: Path,
+    *,
+    provider: str,
+    settings: Settings,
+) -> int:
+    raw = json.loads(request_path.read_text(encoding="utf-8"))
+    request = ProfileIngestionRequest.model_validate(raw)
+
+    if provider == "cursor":
+        from app.tools.cursor_llm import CursorStructuredLLMClient
+
+        logging.getLogger(__name__).info(
+            "extract-profile using CursorStructuredLLMClient model=%s",
+            settings.cursor_model_name(),
+        )
+        try:
+            llm = CursorStructuredLLMClient(settings=settings)
+        except ValueError as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
+        async with llm:
+            return await _emit_extraction(request, llm)
+
+    return await _emit_extraction(request, _extraction_llm(provider, settings))
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -83,9 +127,17 @@ def main(argv: list[str] | None = None) -> None:
         help="Path to a ProfileIngestionRequest JSON file",
     )
     extract.add_argument(
+        "--provider",
+        choices=("mock", "openai", "cursor"),
+        help=(
+            "Structured LLM provider for extraction. "
+            "Default: openai. --mock is the same as --provider mock."
+        ),
+    )
+    extract.add_argument(
         "--mock",
         action="store_true",
-        help="Use the deterministic mock LLM instead of OpenAI",
+        help="Use the deterministic mock LLM (same as --provider mock)",
     )
 
     args = parser.parse_args(argv)
@@ -95,9 +147,14 @@ def main(argv: list[str] | None = None) -> None:
     if args.command == "analyze-profile":
         raise SystemExit(asyncio.run(_run_profile_analysis(args.profile_path)))
     if args.command == "extract-profile":
+        provider = _resolve_extract_provider(parser, args)
         raise SystemExit(
             asyncio.run(
-                _run_profile_extraction(args.request_path, use_mock=args.mock),
+                _run_profile_extraction(
+                    args.request_path,
+                    provider=provider,
+                    settings=settings,
+                ),
             )
         )
 

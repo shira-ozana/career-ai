@@ -22,6 +22,8 @@ sequenceDiagram
 
 The agent sees one source per call. `ProfileExtractionResult` keeps those results side by side. It is not a canonical `CandidateProfile`.
 
+The CLI selects the structured LLM provider (`mock`, `openai`, or `cursor`). The agent calls `StructuredLLMClient` and does not import a provider SDK.
+
 ## What this flow does not do
 
 | Step | Status |

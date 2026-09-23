@@ -35,7 +35,8 @@ uv run mkdocs serve
 - Profile Analyzer Agent (`score`, strengths, weaknesses, missing skills, recommendations)
 - Text profile extraction (`ProfileIngestionRequest` → per-source `ExtractedCandidateProfile`; not canonical state)
 - OpenAI Structured Outputs integration
-- CLI for local analysis and mock text extraction
+- Optional Cursor SDK provider for text extraction (`cursor-sdk`, validated with Pydantic)
+- CLI for local analysis and text extraction (`mock`, OpenAI, or Cursor)
 - PostgreSQL schema via SQLAlchemy 2.x and Alembic (not connected to agents yet)
 - Unit tests with mocked LLM
 
@@ -65,7 +66,8 @@ career-ai/
 
 - Python 3.13+
 - [uv](https://github.com/astral-sh/uv)
-- OpenAI API key
+- OpenAI API key for the default provider
+- Cursor API key only if you select `--provider cursor`
 - PostgreSQL (optional until you run migrations; hosted development DB is Supabase Postgres)
 
 ## Setup
@@ -87,6 +89,12 @@ Text extraction without an API key:
 
 ```bash
 uv run career-ai extract-profile examples/sample_profile_ingestion.json --mock
+```
+
+Text extraction with a Cursor user API key in `.env` (`CURSOR_API_KEY`):
+
+```bash
+uv run career-ai extract-profile examples/sample_profile_ingestion.json --provider cursor
 ```
 
 Or:

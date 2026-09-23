@@ -16,11 +16,11 @@ T = TypeVar("T", bound=BaseModel)
 
 
 class StructuredLLMClient(Protocol):
-    """Contract for structured LLM backends (OpenAI, mock, future providers).
+    """Contract for structured LLM backends.
 
-    Agents depend on this protocol rather than a concrete SDK client so tests
-    can inject ``MockStructuredLLM`` and production can swap providers without
-    changing agent code.
+    Agents depend on this protocol rather than a concrete SDK. ``StructuredLLM``
+    (OpenAI), ``CursorStructuredLLMClient``, and ``MockStructuredLLM`` all
+    implement it. Agent code does not import a provider SDK.
     """
 
     async def complete_structured(

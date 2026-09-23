@@ -73,6 +73,8 @@ cp .env.example .env   # if you do not have .env yet
 
 uv run career-ai analyze-profile examples/sample_profile.json
 uv run career-ai extract-profile examples/sample_profile_ingestion.json --mock
+# optional, needs CURSOR_API_KEY:
+# uv run career-ai extract-profile examples/sample_profile_ingestion.json --provider cursor
 uv run pytest
 ```
 

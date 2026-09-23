@@ -22,7 +22,9 @@ flowchart LR
 | Field | Env var | Default | Used for |
 |-------|---------|---------|----------|
 | `openai_api_key` | `OPENAI_API_KEY` | `""` | OpenAI auth |
-| `openai_model` | `OPENAI_MODEL` | `gpt-4o-mini` | Model name |
+| `openai_model` | `OPENAI_MODEL` | `gpt-4o-mini` | OpenAI model name |
+| `cursor_api_key` | `CURSOR_API_KEY` | `""` | Cursor auth for `--provider cursor` |
+| `cursor_model` | `CURSOR_MODEL` | `composer-2.5` | Cursor model id |
 | `log_level` | `LOG_LEVEL` | `INFO` | CLI log level |
 | `database_url` | `DATABASE_URL` | `""` | SQLAlchemy PostgreSQL URL |
 
@@ -32,7 +34,8 @@ flowchart LR
 2. `extra="ignore"` – unknown `.env` keys (e.g. `GITHUB_TOKEN`) do **not** break loading.
 3. `get_settings()` is wrapped with `@lru_cache` – created once per process.
 4. `require_openai_api_key()` raises a clear error if the key is missing.
-5. `require_database_url()` raises a clear error if the URL is missing. The Profile Analyzer CLI does not call it.
+5. `require_cursor_api_key()` raises a clear error if the Cursor key is missing. The CLI prints that error and exits `1` when `--provider cursor` is selected.
+6. `require_database_url()` raises a clear error if the URL is missing. The Profile Analyzer CLI does not call it.
 
 ## Environment files
 
@@ -43,6 +46,8 @@ Contains real secrets:
 ```bash
 OPENAI_API_KEY=...
 OPENAI_MODEL=gpt-4o-mini
+CURSOR_API_KEY=...
+CURSOR_MODEL=composer-2.5
 LOG_LEVEL=INFO
 DATABASE_URL=postgresql+psycopg://USER:PASSWORD@HOST:5432/DATABASE
 GITHUB_USERNAME=shira-ozana
@@ -60,7 +65,8 @@ Safe template without real secrets – documents which variables are needed.
 | Consumer | What it uses |
 |----------|--------------|
 | `StructuredLLM` | `openai_api_key`, `openai_model` |
-| `cli.py` | `log_level` |
+| `CursorStructuredLLMClient` | `cursor_api_key`, `cursor_model` |
+| `cli.py` | `log_level`, and which extraction provider to construct |
 | `app/db/session.py`, Alembic | `database_url` (when creating an engine or migrating) |
 | `scripts/git-push.sh` | `GITHUB_USERNAME`, `GITHUB_TOKEN` (directly from `.env`, not via Settings) |
 

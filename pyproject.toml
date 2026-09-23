@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "alembic>=1.14",
+    "cursor-sdk>=1.0.32",
     "openai>=1.75.0",
     "psycopg[binary]>=3.2",
     "pydantic>=2.11.0",

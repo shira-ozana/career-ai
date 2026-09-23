@@ -27,8 +27,10 @@ career-ai/
 │   ├── prompts/                 # Prompt templates
 │   │   ├── profile.py           # Analyzer
 │   │   └── profile_extraction.py
-│   ├── tools/                   # Shared tools (LLM, etc.)
-│   │   └── llm.py               # Done
+│   ├── tools/                   # Shared tools (LLM providers)
+│   │   ├── llm.py               # OpenAI structured client + protocol
+│   │   ├── cursor_llm.py        # Optional Cursor SDK adapter
+│   │   └── mock_llm.py          # Deterministic test double
 │   ├── workflows/               # Deterministic flows (text extraction; no engine)
 │   └── api/                     # Empty scaffold – future HTTP API
 ├── alembic/                     # Migrations
@@ -123,7 +125,7 @@ flowchart TB
 - **`agents/`** = capabilities (AI/specialized work), not workflow owners
 - **`models/`** = agent and ingestion I/O contracts (not persistence)
 - **`prompts/`** = how we talk to the LLM (instructions)
-- **`tools/`** = how we connect outward (OpenAI, etc.)
+- **`tools/`** = how we connect outward (OpenAI, optional Cursor SDK, mock)
 - **`db/`** = how domain state is stored (SQLAlchemy; not used by agents yet)
 - **`workflows/`** = deterministic application sequencing (text extraction today)
 - **`cli.py` / `api/`** = how the user invokes the system
@@ -142,7 +144,9 @@ This lets us replace CLI with an API later without rewriting capabilities. The A
 | `app/models/profile_ingestion.py` | Ingestion request and per-source extraction contracts |
 | `app/prompts/profile.py` | Analyzer instruction text |
 | `app/prompts/profile_extraction.py` | Extraction instruction text |
-| `app/tools/llm.py` | Call OpenAI + parse structured output |
+| `app/tools/llm.py` | `StructuredLLMClient` protocol and OpenAI structured output |
+| `app/tools/cursor_llm.py` | Optional Cursor agent adapter; Pydantic validates the text |
+| `app/tools/mock_llm.py` | Deterministic structured LLM for tests and `--mock` |
 | `app/agents/profile/agent.py` | Run the analysis capability |
 | `app/agents/profile/extraction.py` | Extract facts from one source |
 | `app/workflows/profile_ingestion.py` | Normalize sources and extract each text source |
@@ -164,7 +168,7 @@ They are **not** a frozen map of the [modular monolith components](overview.md#t
 | `pyproject.toml` | Package name, dependencies, `career-ai` script, pytest/ruff config |
 | `uv.lock` | Exact versions for reproducible installs |
 | `alembic.ini` | Alembic config; database URL comes from Settings, not this file |
-| `.env` | Local secrets (`OPENAI_API_KEY`, `DATABASE_URL`, `GITHUB_TOKEN`) – **not in git** |
+| `.env` | Local secrets (`OPENAI_API_KEY`, `CURSOR_API_KEY`, `DATABASE_URL`, `GITHUB_TOKEN`) – **not in git** |
 | `.env.example` | Safe shared template |
 | `examples/sample_profile.json` | Sample Profile Analyzer input |
 | `examples/sample_profile_ingestion.json` | Sample text ingestion request |

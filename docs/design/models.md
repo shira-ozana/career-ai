@@ -121,8 +121,10 @@ flowchart LR
     OpenAI -->|output_parsed| Result[ProfileAnalysis instance]
 ```
 
-`ProfileAnalysis` is sent to OpenAI as a schema.  
-The SDK returns a ready Pydantic object — not a string you must parse by hand.
+`ProfileAnalysis` is sent to OpenAI as a schema.
+The OpenAI SDK returns a ready Pydantic object.
+
+The optional Cursor extraction path does not use that OpenAI API. `CursorStructuredLLMClient` sends the Pydantic JSON schema in the prompt, then validates the agent's text with the same model classes. See [LLM client](llm-client.md).
 
 ## Public exports
 

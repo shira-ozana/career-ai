@@ -143,11 +143,14 @@ No workflow-state tables are added for this.
 
 ```bash
 uv run career-ai extract-profile examples/sample_profile_ingestion.json --mock
+uv run career-ai extract-profile examples/sample_profile_ingestion.json --provider cursor
 ```
 
-`--mock` uses `MockStructuredLLM` and does not call OpenAI. The mock returns one fixed `ExtractedCandidateProfile` for every source. The command still emits one result per source, with that source's `source_type`.
+`--mock` uses `MockStructuredLLM` and does not call an external API. The mock returns one fixed `ExtractedCandidateProfile` for every source. The command still emits one result per source, with that source's `source_type`.
 
-Omit `--mock` only when `OPENAI_API_KEY` is set. `analyze-profile` is unchanged.
+The default provider is OpenAI (`StructuredLLM`) and needs `OPENAI_API_KEY`. `--provider cursor` uses the official Python `cursor-sdk` through `CursorStructuredLLMClient` and needs `CURSOR_API_KEY`. Cursor returns text; the adapter validates it into `ExtractedCandidateProfile`. The extraction agent stays on `StructuredLLMClient` either way.
+
+`analyze-profile` is unchanged and has no provider flag.
 
 File and URL requests exit with code `1` and an explicit "not supported yet" message.
 
@@ -159,5 +162,6 @@ File and URL requests exit with code `1` and an explicit "not supported yet" mes
 | `app/prompts/profile_extraction.py` | Extraction prompt |
 | `app/agents/profile/extraction.py` | Single-source extraction capability |
 | `app/workflows/profile_ingestion.py` | Normalize, then extract each text source |
-| `app/cli.py` | `extract-profile` |
+| `app/cli.py` | `extract-profile` provider selection |
+| `app/tools/cursor_llm.py` | Optional Cursor SDK adapter |
 | `examples/sample_profile_ingestion.json` | Two text sources |

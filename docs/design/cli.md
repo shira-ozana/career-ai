@@ -22,6 +22,18 @@ Text extraction (mock LLM, no API key):
 uv run career-ai extract-profile examples/sample_profile_ingestion.json --mock
 ```
 
+The same mock path with an explicit provider:
+
+```bash
+uv run career-ai extract-profile examples/sample_profile_ingestion.json --provider mock
+```
+
+Cursor, after `CURSOR_API_KEY` is set in `.env`:
+
+```bash
+uv run career-ai extract-profile examples/sample_profile_ingestion.json --provider cursor
+```
+
 ## Current commands
 
 ### `analyze-profile`
@@ -68,17 +80,26 @@ flowchart TD
 ## `extract-profile`
 
 ```bash
-career-ai extract-profile <request_path> [--mock]
+career-ai extract-profile <request_path> [--provider mock|openai|cursor] [--mock]
 ```
 
 | Argument | Meaning |
 |----------|---------|
 | `request_path` | Path to a JSON file matching `ProfileIngestionRequest` |
-| `--mock` | Use `MockStructuredLLM` instead of OpenAI |
+| `--provider` | `mock`, `openai`, or `cursor`. Default: `openai` |
+| `--mock` | Same as `--provider mock`. Kept for the existing command |
 
-The command runs `ProfileIngestionFlow`: normalize sources, extract each text source, print `ProfileExtractionResult` JSON. `--mock` returns the same canned profile for every source and still emits one result per source. Without `--mock`, the command calls OpenAI and needs `OPENAI_API_KEY`.
+The command runs `ProfileIngestionFlow`: normalize sources, extract each text source, print `ProfileExtractionResult` JSON. `ProfileExtractionAgent` receives a `StructuredLLMClient` and does not choose the provider.
 
-File and URL sources are valid JSON and exit `1` with `UnsupportedProfileSourceError` on stderr. They are not read or fetched.
+| Provider | Client | Requirement |
+|----------|--------|-------------|
+| `openai` (default) | `StructuredLLM` | `OPENAI_API_KEY` |
+| `mock` | `MockStructuredLLM` | None. One canned profile per source, still one result per source |
+| `cursor` | `CursorStructuredLLMClient` | `CURSOR_API_KEY`. Output is validated with Pydantic |
+
+`--mock` together with `--provider openai` or `--provider cursor` is an error. `analyze-profile` has no `--provider` flag and still uses OpenAI.
+
+File and URL sources are valid JSON and exit `1` with `UnsupportedProfileSourceError` on stderr. They are not read or fetched. A missing `CURSOR_API_KEY` with `--provider cursor` exits `1` before any SDK call.
 
 Details: [Profile ingestion](profile-ingestion.md).
 

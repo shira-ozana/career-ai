@@ -18,12 +18,12 @@ path with zero API calls.
 ``response`` is returned for ``ProfileAnalysis``. ``extraction_response`` is
 returned for ``ExtractedCandidateProfile``. Other schemas raise ``TypeError``.
 
-Preparing for multiple providers
--------------------------------
-Agents depend on ``StructuredLLMClient`` (a Protocol), not OpenAI directly.
-Production wiring can inject ``StructuredLLM`` (OpenAI today), while tests inject
-this mock. Future backends—Cursor SDK, Anthropic, local models—only need to
-implement the same protocol; agent code stays unchanged.
+Provider independence
+---------------------
+Agents depend on ``StructuredLLMClient`` (a Protocol), not on a vendor SDK.
+The CLI injects ``StructuredLLM`` (OpenAI), ``CursorStructuredLLMClient``, or
+this mock. Adding a backend means implementing ``complete_structured``; agent
+code stays unchanged.
 """
 
 from __future__ import annotations

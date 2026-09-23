@@ -359,6 +359,7 @@ Authenticated personalized search uses `User` + `CandidateProfile` + `JobSearchR
 | Profile Extraction Agent | Done | `app/agents/profile/extraction.py` |
 | Text ingestion flow | Done | `app/workflows/profile_ingestion.py` |
 | OpenAI Structured Outputs | Done | `app/tools/llm.py` |
+| Cursor SDK provider (optional) | Done | `app/tools/cursor_llm.py` |
 | Prompt templates | Done | `app/prompts/profile.py`, `app/prompts/profile_extraction.py` |
 | Settings from `.env` | Done | `app/config.py` |
 | PostgreSQL persistence foundation | Done | `app/db/`, `alembic/` |
@@ -370,7 +371,7 @@ Authenticated personalized search uses `User` + `CandidateProfile` + `JobSearchR
 | FastAPI | Empty | `app/api/` |
 | Other agents | Placeholders | `linkedin`, `resume`, `jobs` |
 
-The Profile Analyzer defines a typed **analysis** contract (`ProfileInput` → `ProfileAnalysis`). That contract is not the persisted Candidate Profile and is not the ingestion payload. Text ingestion is a separate contract (`ProfileIngestionRequest` → per-source `ExtractedCandidateProfile`). The repeatable agent pattern is **Pydantic Input → Prompt → LLM Structured Output → Pydantic Output**. The application flow owns sequencing. Persistence and reconciliation are not part of either agent.
+The Profile Analyzer defines a typed **analysis** contract (`ProfileInput` → `ProfileAnalysis`). That contract is not the persisted Candidate Profile and is not the ingestion payload. Text ingestion is a separate contract (`ProfileIngestionRequest` → per-source `ExtractedCandidateProfile`). The repeatable agent pattern is **Pydantic Input → Prompt → LLM Structured Output → Pydantic Output**. OpenAI enforces that schema in the API. The optional Cursor provider is an agent SDK: the adapter asks for JSON text and validates it with Pydantic. `ProfileExtractionAgent` depends only on `StructuredLLMClient`. The application flow owns sequencing. Persistence and reconciliation are not part of either agent.
 
 ### Implemented pipeline
 
