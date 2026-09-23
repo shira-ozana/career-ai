@@ -13,6 +13,7 @@ The **product MVP and planned architecture** are documented separately from that
 | System shape, layers, package layout | [`architecture/`](architecture/overview.md) |
 | Persistent domain, ingestion, data access | [`architecture/data.md`](architecture/data.md) |
 | Job Search pipeline (planned) | [`architecture/job-search.md`](architecture/job-search.md) |
+| Long-horizon evolution: workflows, model policy, evaluation | [`architecture/future-architecture.md`](architecture/future-architecture.md) |
 | A specific implemented feature or component | [`design/`](design/profile-agent.md) |
 | A durable architectural decision | [`adr/`](adr/001-postgresql.md) |
 | An end-to-end user or system path | [`flows/`](flows/profile-ingestion.md) |
@@ -62,7 +63,7 @@ flowchart LR
     K -.-> L
 ```
 
-Details: [Architecture overview](architecture/overview.md) · [Data architecture](architecture/data.md) · [Job Search](architecture/job-search.md)
+Details: [Architecture overview](architecture/overview.md) · [Data architecture](architecture/data.md) · [Job Search](architecture/job-search.md) · [Future architecture](architecture/future-architecture.md)
 
 ## Quick start
 

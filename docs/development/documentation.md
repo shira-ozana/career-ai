@@ -20,6 +20,7 @@ Skip a docs update for typo-level edits, refactors that do not change behavior, 
 | System shape, layers, package layout | `docs/architecture/` | `overview.md` or a focused page |
 | Persistence, ingestion, domain data model | `docs/architecture/` | `data.md` |
 | Job Search pipeline and search execution | `docs/architecture/` | `job-search.md` |
+| Cross-cutting evolution (workflows, model policy, evaluation) | `docs/architecture/` | `future-architecture.md` |
 | A specific feature or component | `docs/design/` | `<component>.md` |
 | A durable architectural decision | `docs/adr/` | `NNN-short-title.md` |
 | An end-to-end user or system path | `docs/flows/` | `<flow-name>.md` |

@@ -81,4 +81,4 @@ Together they produce more stable answers than one long mixed prompt.
 - Add few-shot examples if scores are inconsistent
 - Split prompts by language (Hebrew/English)
 - Add a more detailed rubric (headline / about / experience)
-- Version prompts (`v1`, `v2`) once evaluation starts
+- Version prompts (`v1`, `v2`) once evaluation starts. The principle, without a prompt registry, is in [Future architecture](../architecture/future-architecture.md#prompt-versioning).

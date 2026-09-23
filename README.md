@@ -16,7 +16,7 @@ Detailed docs live in [`docs/`](./docs/index.md) and are built with MkDocs.
 
 | Folder | Use for |
 |--------|---------|
-| [`docs/architecture/`](./docs/architecture/overview.md) | Modular monolith, [data model](./docs/architecture/data.md), [Job Search](./docs/architecture/job-search.md), package layout |
+| [`docs/architecture/`](./docs/architecture/overview.md) | Modular monolith, [data model](./docs/architecture/data.md), [Job Search](./docs/architecture/job-search.md), [future architecture](./docs/architecture/future-architecture.md), package layout |
 | [`docs/design/`](./docs/design/profile-agent.md) | Feature / component design |
 | [`docs/adr/`](./docs/adr/001-postgresql.md) | Architectural decisions |
 | [`docs/flows/`](./docs/flows/profile-ingestion.md) | End-to-end flows |

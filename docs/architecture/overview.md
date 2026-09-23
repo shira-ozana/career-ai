@@ -16,6 +16,7 @@ Related pages:
 
 - [Data architecture](data.md) — persistence, ownership, schema
 - [Job Search](job-search.md) — catalog-first discovery, `SearchExecution`, matching
+- [Future architecture](future-architecture.md) — workflow ownership over time, reconciliation, model policy, evaluation
 - [Project structure](project-structure.md) — package layout
 - [ADR 002](../adr/002-modular-monolith.md) · [ADR 003](../adr/003-application-owns-workflows.md)
 

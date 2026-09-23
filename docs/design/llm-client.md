@@ -172,3 +172,5 @@ Unit tests fake `launch_cursor_client` / `prompt_cursor` or inject a text comple
 | Cost/token logging | Cost tracking |
 | More providers | Anthropic or a local model, behind the same protocol |
 | Caching | Avoid repeated calls for the same profile |
+
+Task-based model routing, fallbacks, and evaluation are not extensions of this client. They are recorded in [Future architecture](../architecture/future-architecture.md#model-routing) and stay unbuilt until a second task needs a different policy.

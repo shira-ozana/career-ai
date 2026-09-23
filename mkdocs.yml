@@ -37,6 +37,7 @@ nav:
       - Overview: architecture/overview.md
       - Data architecture: architecture/data.md
       - Job Search: architecture/job-search.md
+      - Future architecture: architecture/future-architecture.md
       - Project structure: architecture/project-structure.md
   - Design:
       - Profile agent: design/profile-agent.md

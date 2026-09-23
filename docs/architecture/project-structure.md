@@ -59,6 +59,7 @@ docs/
 │   ├── overview.md             # Modular monolith, layers, current vs planned
 │   ├── data.md                 # Persistence, ownership, relational schema
 │   ├── job-search.md           # Planned catalog-first Job Search
+│   ├── future-architecture.md  # Evolution: workflows, model policy, evaluation
 │   └── project-structure.md    # This page
 ├── design/                     # Implemented feature and component design
 ├── development/                # Setup, testing, documentation conventions

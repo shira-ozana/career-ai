@@ -137,7 +137,7 @@ The model may extract facts. It must not unilaterally resolve a meaningful confl
 
 **Merge rule for the future canonical update:** merge, and do not implicitly delete. A fact missing from a newly supplied source stays on `CandidateProfile`. A CV tailored to one job may omit valid skills or experience on purpose. Deletion or replacement needs an explicit action, not absence.
 
-No workflow-state tables are added for this.
+No workflow-state tables are added for this. Why a review can outlive one request, and why that state stays separate from `CandidateProfile`, is in [Future architecture](../architecture/future-architecture.md#resumable-workflows).
 
 ## CLI
 
