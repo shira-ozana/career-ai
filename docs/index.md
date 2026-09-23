@@ -2,7 +2,7 @@
 
 Career AI helps a user manage and optimize the job-search process.
 
-The **running codebase** is a Profile Analyzer CLI (structured JSON in, structured analysis out) plus a PostgreSQL schema that is not wired to agents yet. The deployable shape is a **modular monolith** — one backend, one database — not microservices.
+The **running codebase** is a Profile Analyzer CLI, a text profile-extraction CLI, and a PostgreSQL schema that is not wired to either flow. The deployable shape is a **modular monolith** — one backend, one database — not microservices.
 
 The **product MVP and planned architecture** are documented separately from that implementation.
 
@@ -15,7 +15,7 @@ The **product MVP and planned architecture** are documented separately from that
 | Job Search pipeline (planned) | [`architecture/job-search.md`](architecture/job-search.md) |
 | A specific implemented feature or component | [`design/`](design/profile-agent.md) |
 | A durable architectural decision | [`adr/`](adr/001-postgresql.md) |
-| An end-to-end user or system path | `flows/` (create when needed) |
+| An end-to-end user or system path | [`flows/`](flows/profile-ingestion.md) |
 | Setup, tooling, testing, conventions | [`development/`](development/documentation.md) |
 
 See [Documentation guidelines](development/documentation.md) for when a code change needs a docs update.
@@ -28,6 +28,7 @@ flowchart LR
         A[CLI]
         B[ProfileInput / ProfileAnalysis]
         C[ProfileAnalyzerAgent]
+        T[Text extraction flow]
         D[StructuredLLM]
         E[Prompts]
         F[Tests]
@@ -35,27 +36,29 @@ flowchart LR
         P[PostgreSQL schema / Alembic]
     end
 
-    subgraph Next["Next milestone — not implemented"]
-        Ing[Profile Ingestion Service]
-        Repo[Repository]
+    subgraph Next["Not implemented"]
+        Repo[Canonical profile repository]
+        H[File / URL acquisition]
+        R[Reconciliation / HITL]
     end
 
     subgraph Planned["Planned — not implemented"]
-        H[CV / LinkedIn ingestion]
         K[SearchExecution / catalog-first search]
         L[Matching / JobMatch wiring]
         M[CV tailoring]
-        N[Application workflows]
     end
 
     A --> C
     B --> C
+    A --> T
     E --> C
+    E --> T
     D --> C
-    P -.-> Ing
-    Ing -.-> Repo
+    D --> T
+    T -.-> H
+    T -.-> R
+    R -.-> Repo
     Repo -.-> P
-    Ing -.-> H
     K -.-> L
 ```
 
@@ -69,6 +72,7 @@ cp .env.example .env   # if you do not have .env yet
 # Add OPENAI_API_KEY in .env
 
 uv run career-ai analyze-profile examples/sample_profile.json
+uv run career-ai extract-profile examples/sample_profile_ingestion.json --mock
 uv run pytest
 ```
 

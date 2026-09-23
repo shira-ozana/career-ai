@@ -16,7 +16,13 @@ uv run python -m app analyze-profile examples/sample_profile.json
 uv run python -m app.cli analyze-profile examples/sample_profile.json
 ```
 
-## Current command
+Text extraction (mock LLM, no API key):
+
+```bash
+uv run career-ai extract-profile examples/sample_profile_ingestion.json --mock
+```
+
+## Current commands
 
 ### `analyze-profile`
 
@@ -41,7 +47,13 @@ flowchart TD
     G --> H[ProfileInput.model_validate]
     H --> I[ProfileAnalyzerAgent.analyze]
     I --> J[Print analysis JSON]
-    E -->|no| K[parser.error]
+    E -->|no| L{command == extract-profile?}
+    L -->|yes| M[asyncio.run _run_profile_extraction]
+    M --> N[Read JSON file]
+    N --> O[ProfileIngestionRequest.model_validate]
+    O --> P[ProfileIngestionFlow]
+    P --> Q[Print per-source JSON or unsupported error]
+    L -->|no| K[parser.error]
 ```
 
 ## `_run_profile_analysis` step by step
@@ -52,6 +64,23 @@ flowchart TD
 4. Run `await agent.analyze(...)`
 5. Print `analysis.model_dump_json(indent=2)` to stdout
 6. Return exit code `0`
+
+## `extract-profile`
+
+```bash
+career-ai extract-profile <request_path> [--mock]
+```
+
+| Argument | Meaning |
+|----------|---------|
+| `request_path` | Path to a JSON file matching `ProfileIngestionRequest` |
+| `--mock` | Use `MockStructuredLLM` instead of OpenAI |
+
+The command runs `ProfileIngestionFlow`: normalize sources, extract each text source, print `ProfileExtractionResult` JSON. `--mock` returns the same canned profile for every source and still emits one result per source. Without `--mock`, the command calls OpenAI and needs `OPENAI_API_KEY`.
+
+File and URL sources are valid JSON and exit `1` with `UnsupportedProfileSourceError` on stderr. They are not read or fetched.
+
+Details: [Profile ingestion](profile-ingestion.md).
 
 ## Logging
 
@@ -68,6 +97,7 @@ During a run you will see logs such as:
 - Analyzing profile for ...
 - Requesting structured completion ...
 - Profile analysis complete ... score=...
+- Extracting profile facts from source_type=...
 
 The main result (JSON) is printed separately to stdout.
 
@@ -82,11 +112,13 @@ The main result (JSON) is printed separately to stdout.
 
 You can copy it and adapt it to your real profile.
 
+`examples/sample_profile_ingestion.json` is a two-source text request for `extract-profile`.
+
 ## What the CLI still lacks
 
-- Commands that call application services (the next slice is Profile Ingestion, not another agent command)
 - Saving output to a file (`--output`)
 - Interactive mode
-- CV file and LinkedIn ingestion (URL or vanity/username, plus LinkedIn PDF for complete profile data)
+- Reading a CV file or fetching a LinkedIn or portfolio URL
+- Reconciliation, human review, and canonical profile persistence
 
 Product inputs and the next milestone are listed in [Architecture](../architecture/overview.md).

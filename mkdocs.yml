@@ -40,10 +40,13 @@ nav:
       - Project structure: architecture/project-structure.md
   - Design:
       - Profile agent: design/profile-agent.md
+      - Profile ingestion: design/profile-ingestion.md
       - Models: design/models.md
       - Prompts: design/prompts.md
       - LLM client: design/llm-client.md
       - CLI: design/cli.md
+  - Flows:
+      - Profile ingestion: flows/profile-ingestion.md
   - Decisions:
       - 001 PostgreSQL: adr/001-postgresql.md
       - 002 Modular monolith: adr/002-modular-monolith.md

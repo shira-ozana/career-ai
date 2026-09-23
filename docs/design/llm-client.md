@@ -89,8 +89,10 @@ analysis = await llm.complete_structured(..., response_model=ProfileAnalysis)
 
 ## How we test without real OpenAI calls
 
-Tests do not call the real `StructuredLLM`.  
+Tests do not call the real `StructuredLLM`.
 They use `MockStructuredLLM`, which returns a fixed result.
+
+`response` is used when the schema is `ProfileAnalysis`. `extraction_response` is used when the schema is `ExtractedCandidateProfile`. Both agents depend on `StructuredLLMClient`, not on OpenAI.
 
 Benefits:
 

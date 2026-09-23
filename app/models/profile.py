@@ -2,8 +2,8 @@
 
 ``ProfileInput`` / ``ExperienceItem`` / ``ProfileAnalysis`` are analysis-specific
 Pydantic I/O models. They are not the persisted ``CandidateProfile`` /
-``Experience`` ORM entities, and they are not the future ingestion contract
-for CV or LinkedIn sources.
+``Experience`` ORM entities, and they are not the profile ingestion contract.
+Ingestion and extraction models live in ``app.models.profile_ingestion``.
 """
 
 from __future__ import annotations
@@ -35,7 +35,7 @@ class ProfileInput(BaseModel):
 
     Used by the CLI and agent to score an already-structured profile JSON
     against a career goal. Do not treat this as the canonical persisted
-    ``CandidateProfile`` or as the future CV/LinkedIn ingestion model.
+    ``CandidateProfile`` or as ``ProfileIngestionRequest``.
     """
 
     name: str = Field(..., min_length=1, description="Full name")

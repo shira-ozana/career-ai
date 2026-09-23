@@ -6,7 +6,7 @@ Career AI helps a user manage and optimize the job-search process: ingest CV and
 
 ## Status
 
-**Implemented:** Profile Analyzer Agent (CLI) with OpenAI Structured Outputs, plus a PostgreSQL persistence foundation (SQLAlchemy / Alembic) that is not yet used by agents.
+**Implemented:** Profile Analyzer CLI, text profile extraction CLI (`extract-profile`), and a PostgreSQL persistence foundation (SQLAlchemy / Alembic) that neither flow writes to yet.
 
 Career AI is a **modular monolith** (one backend, one PostgreSQL database), not a microservice system. **Product MVP and planned architecture** (ingestion, catalog-first job search, matching, CV tailoring, application services) are documented in [`docs/`](./docs/index.md).
 
@@ -19,7 +19,7 @@ Detailed docs live in [`docs/`](./docs/index.md) and are built with MkDocs.
 | [`docs/architecture/`](./docs/architecture/overview.md) | Modular monolith, [data model](./docs/architecture/data.md), [Job Search](./docs/architecture/job-search.md), package layout |
 | [`docs/design/`](./docs/design/profile-agent.md) | Feature / component design |
 | [`docs/adr/`](./docs/adr/001-postgresql.md) | Architectural decisions |
-| `docs/flows/` | End-to-end flows (create when needed) |
+| [`docs/flows/`](./docs/flows/profile-ingestion.md) | End-to-end flows |
 | [`docs/development/`](./docs/development/documentation.md) | Setup, testing, and documentation conventions |
 
 When a code change affects architecture, contracts, flows, or conventions, update the matching folder **in the same PR**. See [Documentation guidelines](./docs/development/documentation.md).
@@ -33,8 +33,9 @@ uv run mkdocs serve
 
 - Typed Profile Analyzer input/output via Pydantic (`ProfileInput` / `ProfileAnalysis`; not the persisted Candidate Profile)
 - Profile Analyzer Agent (`score`, strengths, weaknesses, missing skills, recommendations)
+- Text profile extraction (`ProfileIngestionRequest` → per-source `ExtractedCandidateProfile`; not canonical state)
 - OpenAI Structured Outputs integration
-- CLI for local analysis
+- CLI for local analysis and mock text extraction
 - PostgreSQL schema via SQLAlchemy 2.x and Alembic (not connected to agents yet)
 - Unit tests with mocked LLM
 
@@ -47,10 +48,10 @@ career-ai/
 ├── app/
 │   ├── agents/          # Agent capabilities (profile implemented)
 │   ├── db/              # SQLAlchemy models, engine, sessions
-│   ├── models/          # Agent I/O contracts (Pydantic)
+│   ├── models/          # Analyzer and ingestion contracts (Pydantic)
 │   ├── prompts/         # Prompt templates
 │   ├── tools/           # Shared tools (LLM client, etc.)
-│   ├── workflows/       # Empty scaffold; proposed application/workflow
+│   ├── workflows/       # Text extraction flow; no workflow engine
 │   └── api/             # Empty scaffold; future HTTP API
 ├── alembic/             # Database migrations
 ├── examples/            # Sample payloads
@@ -80,6 +81,12 @@ cp .env.example .env
 
 ```bash
 uv run career-ai analyze-profile examples/sample_profile.json
+```
+
+Text extraction without an API key:
+
+```bash
+uv run career-ai extract-profile examples/sample_profile_ingestion.json --mock
 ```
 
 Or:
@@ -112,8 +119,8 @@ See [Architecture](./docs/architecture/overview.md), [Data architecture](./docs/
 
 Direction, not a delivery schedule:
 
-1. **Next:** Profile Ingestion Service — structured JSON → canonical `CandidateProfile` in PostgreSQL
-2. Profile ingestion from CV and LinkedIn, with conflict handling
+1. **Done as a first slice:** text profile extraction to per-source JSON (no database write)
+2. **Next:** canonical `CandidateProfile` merge in PostgreSQL (no implicit deletion), then file/URL acquisition and reconciliation
 3. LinkedIn optimization
 4. Catalog-first Job Search (`SearchExecution`, discovery, matching)
 5. CV tailoring

@@ -11,8 +11,12 @@ How this enables cost-free testing
 ----------------------------------
 ``MockStructuredLLM`` implements the same ``complete_structured`` contract as
 ``StructuredLLM`` but returns a pre-built Pydantic model in-process. Inject it
-via ``ProfileAnalyzerAgent(llm=MockStructuredLLM(...))`` to exercise the full
-agent path with zero API calls.
+via ``ProfileAnalyzerAgent(llm=MockStructuredLLM(...))`` or
+``ProfileExtractionAgent(llm=MockStructuredLLM(...))`` to exercise the agent
+path with zero API calls.
+
+``response`` is returned for ``ProfileAnalysis``. ``extraction_response`` is
+returned for ``ExtractedCandidateProfile``. Other schemas raise ``TypeError``.
 
 Preparing for multiple providers
 -------------------------------
@@ -31,6 +35,11 @@ from typing import TypeVar
 from pydantic import BaseModel
 
 from app.models.profile import ProfileAnalysis
+from app.models.profile_ingestion import (
+    ExtractedCandidateProfile,
+    ExtractedDate,
+    ExtractedExperience,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +67,23 @@ _DEFAULT_MOCK_ANALYSIS = ProfileAnalysis(
     ],
 )
 
+_DEFAULT_MOCK_EXTRACTION = ExtractedCandidateProfile(
+    current_title="Senior Software Engineer",
+    location="Tel Aviv",
+    linkedin_url=None,
+    experiences=[
+        ExtractedExperience(
+            company_name="Example Corp",
+            title="Senior Software Engineer",
+            start_date=ExtractedDate(year=2023, month=1),
+            end_date=None,
+            is_current=True,
+            description="Built and maintained FastAPI services.",
+        )
+    ],
+    skills=["Python", "FastAPI", "PostgreSQL"],
+)
+
 
 @dataclass
 class MockLLMCall:
@@ -76,6 +102,9 @@ class MockStructuredLLM:
     response: ProfileAnalysis = field(
         default_factory=lambda: _DEFAULT_MOCK_ANALYSIS.model_copy(deep=True),
     )
+    extraction_response: ExtractedCandidateProfile = field(
+        default_factory=lambda: _DEFAULT_MOCK_EXTRACTION.model_copy(deep=True),
+    )
     calls: list[MockLLMCall] = field(default_factory=list)
 
     async def complete_structured(
@@ -86,7 +115,7 @@ class MockStructuredLLM:
         response_model: type[T],
         model: str | None = None,
     ) -> T:
-        """Return a fixed ``ProfileAnalysis`` and record the call for tests."""
+        """Return a fixed structured model and record the call for tests."""
         logger.debug(
             "MockStructuredLLM.complete_structured schema=%s (no API call)",
             response_model.__name__,
@@ -101,11 +130,14 @@ class MockStructuredLLM:
             ),
         )
 
-        if not issubclass(response_model, ProfileAnalysis):
-            msg = (
-                f"MockStructuredLLM only supports ProfileAnalysis; "
-                f"got {response_model.__name__}"
-            )
-            raise TypeError(msg)
+        if issubclass(response_model, ProfileAnalysis):
+            return self.response.model_copy(deep=True)  # type: ignore[return-value]
+        if issubclass(response_model, ExtractedCandidateProfile):
+            return self.extraction_response.model_copy(deep=True)  # type: ignore[return-value]
 
-        return self.response.model_copy(deep=True)  # type: ignore[return-value]
+        msg = (
+            "MockStructuredLLM does not support "
+            f"{response_model.__name__}; "
+            "expected ProfileAnalysis or ExtractedCandidateProfile"
+        )
+        raise TypeError(msg)

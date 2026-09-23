@@ -4,7 +4,7 @@
 
 `app/models/profile.py`
 
-These models are the **implemented agent I/O contract** for the Profile Analyzer. They are not the persistent [Candidate Profile](../architecture/data.md#persistent-candidate-state), they are not the future CV/LinkedIn ingestion payload, and they are not `CandidateProfileIngestionInput` (the next persistence contract; not implemented).
+These models are the **implemented agent I/O contract** for the Profile Analyzer. They are not the persistent [Candidate Profile](../architecture/data.md#persistent-candidate-state), and they are not the [profile ingestion](profile-ingestion.md) contract.
 
 - `ProfileInput.skills` is `list[str]` with in-memory normalize/dedupe.
 - Persistence treats **Skill** (and Company) as reusable ORM entities in `app/db/models/`. See [Data architecture](../architecture/data.md) and [Database](../development/database.md).
@@ -65,7 +65,7 @@ One work-experience entry in the analyzer input. Company is a string and duratio
 
 ## `ProfileInput` – Profile Analyzer input
 
-Analysis-only. The CLI validates a JSON file into this model and passes it to the agent. Do not reuse it as the canonical persistence model or as the future ingestion contract.
+Analysis-only. The CLI validates a JSON file into this model and passes it to the agent. Do not reuse it as the canonical persistence model or as the ingestion contract (`ProfileIngestionRequest`).
 
 | Field | Required? | Meaning |
 |-------|-----------|---------|
@@ -126,11 +126,13 @@ The SDK returns a ready Pydantic object — not a string you must parse by hand.
 
 ## Public exports
 
-`app/models/__init__.py` exports:
+`app/models/__init__.py` exports the analyzer models:
 
 - `ExperienceItem`
 - `ProfileInput`
 - `ProfileAnalysis`
+
+Ingestion and extraction models are exported from the same package. See [Profile ingestion](profile-ingestion.md).
 
 So you can write:
 

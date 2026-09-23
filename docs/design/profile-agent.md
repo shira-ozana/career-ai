@@ -9,7 +9,7 @@
 
 **Implemented** scope: takes an already-structured professional profile + career goal and returns a structured analysis.
 
-This is not the full [Profile Ingestion / Analysis](../architecture/overview.md#profile-ingestion-analysis) component. The agent is a **capability**: it scores an already-structured JSON profile. It does not read a CV or LinkedIn PDF, persist a canonical profile, or resolve source conflicts. Persistence belongs to an application service, not to this agent. See [ADR 003](../adr/003-application-owns-workflows.md).
+This is not [profile ingestion](profile-ingestion.md). The analyzer scores an already-structured JSON profile. Text extraction is a separate capability and a separate contract. Neither agent reads a CV file, fetches a URL, persists a canonical profile, or resolves source conflicts. See [ADR 003](../adr/003-application-owns-workflows.md).
 
 - Score
 - Strengths
@@ -66,8 +66,8 @@ In code:
 |----------|-----|
 | Does not read files from disk | CLI responsibility |
 | Does not print JSON | Interface responsibility |
-| Does not persist a Candidate Profile | Next milestone: Profile Ingestion Service; see [Data architecture](../architecture/data.md) |
-| Does not ingest CV / LinkedIn sources | Proposed after the structured-JSON slice; see [Architecture](../architecture/overview.md) |
+| Does not persist a Candidate Profile | Canonical merge is later; see [Data architecture](../architecture/data.md) |
+| Does not extract CV or LinkedIn text | That is [profile ingestion](profile-ingestion.md), and only text execution exists today |
 | Does not rewrite LinkedIn copy | Proposed LinkedIn Optimization |
 | Does not search or match jobs | Proposed [Job Search](../architecture/job-search.md) (Discovery and Matching are separate) |
 

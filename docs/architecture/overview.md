@@ -34,14 +34,15 @@ The product ingests a candidate's professional sources, builds a reliable profil
 | LinkedIn identity | Full profile URL **or** LinkedIn vanity/username |
 | LinkedIn profile PDF | Expected for **complete** profile ingestion; a URL alone cannot be assumed to yield all required fields |
 
-The **immediate next implementation** is a narrower slice: persist structured candidate JSON into the canonical profile. Full CV/LinkedIn file ingestion remains later. See [Next implementation milestone](#next-implementation-milestone).
+**Implemented:** text sources on a `ProfileIngestionRequest` are normalized and extracted per source. The result is not persisted and is not the canonical profile. File and URL sources are part of the input contract, but acquisition is not implemented. Canonical persistence, reconciliation, and human review remain later. See [Profile ingestion](../design/profile-ingestion.md) and [Next implementation milestone](#next-implementation-milestone).
 
 ### Capabilities
 
 | Capability | Product status | Implementation today |
 |------------|----------------|----------------------|
-| Candidate / profile analysis | MVP | Partial: CLI analyzes a pre-structured `ProfileInput` JSON file. No CV or LinkedIn ingestion. |
-| Canonical profile persistence | MVP | Schema exists; Profile Ingestion Service is not implemented. |
+| Candidate / profile analysis | MVP | Partial: CLI analyzes a pre-structured `ProfileInput` JSON file. |
+| Text profile extraction | MVP slice | **Implemented:** CLI extracts text sources to per-source JSON. No file/URL acquisition, reconciliation, or persistence. |
+| Canonical profile persistence | MVP | Schema exists; extraction does not write `CandidateProfile`. |
 | LinkedIn optimization recommendations | MVP | Not implemented (`app/agents/linkedin/` is a placeholder) |
 | Job discovery (catalog + external sources) | MVP | Not implemented (`app/agents/jobs/` is a placeholder) |
 | Candidate-to-job matching / ranking | MVP | Not implemented |
@@ -92,7 +93,7 @@ flowchart TB
     end
 ```
 
-Application, repository, and Job Search runtime paths in that diagram are **decided**, not implemented. What exists today is the CLI, the Profile Analyzer agent, ORM models, and Alembic migrations against one database.
+Application services, repositories, and Job Search runtime paths in that diagram are **decided**, not implemented. What exists today is the CLI, the Profile Analyzer, the text extraction flow, ORM models, and Alembic migrations against one database.
 
 ### Module ownership
 
@@ -227,7 +228,7 @@ The deterministic application layer owns sequencing, persistence, transactions, 
 
 Agents use explicit input/output contracts (Pydantic). Do not pass SQLAlchemy ORM objects across module boundaries where a stable contract should exist.
 
-The implemented Profile Analyzer is a capability invoked by the CLI. It does not persist. The next Profile Ingestion slice introduces the first application service and repository in this pattern.
+The implemented Profile Analyzer is a capability invoked by the CLI. It does not persist. Text extraction is a second capability: the CLI calls `ProfileIngestionFlow`, which calls `ProfileExtractionAgent` once per text source. That flow does not persist and does not introduce a repository.
 
 ## Authentication and authorization
 
@@ -271,7 +272,7 @@ flowchart TB
     Repo2 --> Store[(PostgreSQL)]
 ```
 
-`app/workflows/` exists only as an empty scaffold. Application services and repositories do not exist yet.
+`app/workflows/profile_ingestion.py` is a deterministic Python flow for text extraction. It is not a workflow engine. Repositories do not exist yet.
 
 ### Conceptual components
 
@@ -285,9 +286,11 @@ Responsible for:
 - detecting conflicting information
 - producing a reliable **Candidate Profile**
 
-The implemented [Profile Analyzer Agent](../design/profile-agent.md) is a **narrow capability**: it scores an already-structured JSON profile. It does not ingest files, persist a canonical profile, or run human-in-the-loop conflict resolution.
+The implemented [Profile Analyzer Agent](../design/profile-agent.md) is a **narrow capability**: it scores an already-structured JSON profile. It does not ingest sources.
 
-The next slice persists structured JSON through a Profile Ingestion Service. That is still not full CV/LinkedIn ingestion.
+The implemented [text extraction flow](../design/profile-ingestion.md) turns text sources into per-source facts. It does not read files, fetch URLs, persist a canonical profile, or run human-in-the-loop conflict resolution.
+
+Canonical persistence, file and URL acquisition, and reconciliation are still later.
 
 #### LinkedIn Optimization
 
@@ -346,24 +349,28 @@ Authenticated personalized search uses `User` + `CandidateProfile` + `JobSearchR
 
 ## Implemented architecture (current codebase)
 
-**Implemented:** a single typed pipeline from profile JSON to analysis JSON, plus an unused PostgreSQL schema.
+**Implemented:** profile analysis, text profile extraction, and an unused PostgreSQL schema.
 
 | Component | Status | Key files |
 |-----------|--------|-----------|
 | Profile Analyzer I/O contracts | Done | `app/models/profile.py` |
 | Profile Analyzer Agent | Done | `app/agents/profile/agent.py` |
+| Profile ingestion / extraction contracts | Done | `app/models/profile_ingestion.py` |
+| Profile Extraction Agent | Done | `app/agents/profile/extraction.py` |
+| Text ingestion flow | Done | `app/workflows/profile_ingestion.py` |
 | OpenAI Structured Outputs | Done | `app/tools/llm.py` |
-| Prompt templates | Done | `app/prompts/profile.py` |
+| Prompt templates | Done | `app/prompts/profile.py`, `app/prompts/profile_extraction.py` |
 | Settings from `.env` | Done | `app/config.py` |
 | PostgreSQL persistence foundation | Done | `app/db/`, `alembic/` |
 | CLI | Done | `app/cli.py` |
 | Tests | Done | `tests/` |
-| Application services / repositories | Missing | Next milestone |
-| Orchestrator / workflows | Empty | `app/workflows/` |
+| Repositories / canonical profile writes | Missing | Later |
+| File and URL acquisition | Missing | Request contract only |
+| Reconciliation / HITL | Missing | Later |
 | FastAPI | Empty | `app/api/` |
 | Other agents | Placeholders | `linkedin`, `resume`, `jobs` |
 
-The Profile Agent came first because it defines a typed **analysis** contract (`ProfileInput` → `ProfileAnalysis`). That contract is not the persisted Candidate Profile and is not the future ingestion payload. The repeatable agent pattern is **Pydantic Input → Prompt → LLM Structured Output → Pydantic Output**. Persistence, ingestion, and orchestration belong to the application layer, not to the agent.
+The Profile Analyzer defines a typed **analysis** contract (`ProfileInput` → `ProfileAnalysis`). That contract is not the persisted Candidate Profile and is not the ingestion payload. Text ingestion is a separate contract (`ProfileIngestionRequest` → per-source `ExtractedCandidateProfile`). The repeatable agent pattern is **Pydantic Input → Prompt → LLM Structured Output → Pydantic Output**. The application flow owns sequencing. Persistence and reconciliation are not part of either agent.
 
 ### Implemented pipeline
 
@@ -378,6 +385,12 @@ flowchart TB
     Agent -->|ProfileAnalysis| CLI
     CLI -->|JSON stdout| User
 
+    CLI2[extract-profile] -->|ProfileIngestionRequest| Flow[ProfileIngestionFlow]
+    Flow -->|one text source| Extract[ProfileExtractionAgent]
+    Extract --> LLM
+    Extract -->|ExtractedCandidateProfile| Flow
+    Flow -->|ProfileExtractionResult| CLI2
+
     Settings[Settings / .env] -.-> LLM
     Models[Pydantic models] -.-> Agent
     Prompts[Prompt templates] -.-> Agent
@@ -385,7 +398,7 @@ flowchart TB
 
 ### Responsibility layers
 
-**Implemented today** (Profile Analyzer only):
+**Implemented today** for the Profile Analyzer. Text extraction adds a flow in front of its agent: CLI → `ProfileIngestionFlow` → `ProfileExtractionAgent`. Neither path persists.
 
 ```mermaid
 flowchart LR
@@ -501,11 +514,12 @@ Placeholder package names (`linkedin`, `resume`, `jobs`) may be renamed or split
 |------|--------|
 | Modular monolith, one PostgreSQL, one backend | **Implemented** as deployable shape |
 | Profile Analyzer CLI | **Implemented** |
+| Text profile extraction CLI | **Implemented** (no persistence) |
 | SQLAlchemy models + Alembic initial schema | **Implemented** |
 | Supabase as hosted PostgreSQL for development | **Implemented** (hosting, not an app API) |
 | Architecture / development documentation | **Implemented** |
-| Tests for analyzer contracts and ORM metadata | **Implemented** |
-| Profile Ingestion Service / repositories | **Planned** — next milestone |
+| Tests for analyzer, text extraction, and ORM metadata | **Implemented** |
+| File/URL acquisition, reconciliation, canonical profile writes | **Planned** |
 | `SearchExecution` persistence | **Planned** |
 | Async Job Search, queue/workers | **Planned**; queue technology **deferred** |
 | Multi-source external discovery | **Planned** |
@@ -520,21 +534,20 @@ Do not describe planned components as currently implemented.
 
 ## Next implementation milestone
 
-**Decided** as the next code change. **Not part of this documentation alignment.**
+**Text extraction is implemented.** Canonical persistence is not.
+
+Implemented path:
 
 ```text
-Structured JSON
-  → CandidateProfileIngestionInput
-    → validation
-      → normalization
-        → Profile Ingestion Service
-          → Repository / data access
-            → PostgreSQL
+ProfileIngestionRequest
+  → normalize text sources
+    → ProfileExtractionAgent (one source at a time)
+      → ProfileExtractionResult
 ```
 
-Success criterion: given an existing `User` and valid structured candidate JSON, Career AI can atomically create or update that user's canonical `CandidateProfile`, Experiences, Companies, and Skills, and retrieve the resulting profile from PostgreSQL.
+`ProfileExtractionResult` is not written to PostgreSQL. File and URL sources fail before extraction. Reconciliation and human review are not implemented.
 
-Do not implement queues, workers, microservices, or Job Search in that slice.
+Still ahead for a canonical profile: an application-owned merge into `CandidateProfile` that does not treat a missing fact as a deletion, plus repositories. That work is not this slice. Do not implement queues, workers, microservices, or Job Search in it.
 
 ## Intentionally deferred decisions
 
@@ -568,9 +581,9 @@ No cache, queue, or replica infrastructure is in the project today.
 
 | Gap | Status |
 |-----|--------|
-| Profile Ingestion Service + repository | Next milestone |
-| Orchestration (`app/workflows/`) | Proposed; scaffold only |
-| Profile ingestion from CV / LinkedIn PDF or URL | Proposed; after the structured-JSON slice |
+| Canonical profile merge + repository | Not started |
+| Text extraction flow (`app/workflows/profile_ingestion.py`) | **Implemented**; not a workflow engine |
+| Profile ingestion from CV / LinkedIn PDF or URL | Request contract only; acquisition not implemented |
 | Canonical Candidate Profile persistence wiring | Schema implemented; not wired |
 | `SearchExecution`, async Job Search, catalog-first pipeline | Proposed; see [Job Search](job-search.md) |
 | LinkedIn optimization, CV tailoring | Proposed product MVP; placeholders only |

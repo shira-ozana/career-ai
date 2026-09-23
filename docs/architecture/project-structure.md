@@ -14,19 +14,22 @@ career-ai/
 │   │   ├── session.py           # Lazy engine / sessionmaker
 │   │   └── models/              # ORM mappings
 │   ├── agents/                  # All agents
-│   │   ├── profile/             # Implemented
+│   │   ├── profile/             # Analyzer and extraction agents
 │   │   │   ├── __init__.py
-│   │   │   └── agent.py
+│   │   │   ├── agent.py
+│   │   │   └── extraction.py
 │   │   ├── linkedin/            # Placeholder (proposed MVP)
 │   │   ├── resume/              # Placeholder (proposed MVP)
 │   │   └── jobs/                # Placeholder (proposed MVP)
-│   ├── models/                  # Agent I/O contracts (Pydantic)
-│   │   └── profile.py           # Profile Analyzer input/output
+│   ├── models/                  # Pydantic I/O contracts
+│   │   ├── profile.py           # Profile Analyzer input/output
+│   │   └── profile_ingestion.py # Ingestion request and extraction output
 │   ├── prompts/                 # Prompt templates
-│   │   └── profile.py           # Done
+│   │   ├── profile.py           # Analyzer
+│   │   └── profile_extraction.py
 │   ├── tools/                   # Shared tools (LLM, etc.)
 │   │   └── llm.py               # Done
-│   ├── workflows/               # Empty scaffold – proposed application/workflow
+│   ├── workflows/               # Deterministic flows (text extraction; no engine)
 │   └── api/                     # Empty scaffold – future HTTP API
 ├── alembic/                     # Migrations
 │   ├── env.py
@@ -57,14 +60,16 @@ docs/
 │   └── project-structure.md    # This page
 ├── design/                     # Implemented feature and component design
 ├── development/                # Setup, testing, documentation conventions
-└── adr/
+├── adr/
     ├── 001-postgresql.md
     ├── 002-modular-monolith.md
     ├── 003-application-owns-workflows.md
     └── 004-catalog-first-job-search.md
+└── flows/
+    └── profile-ingestion.md    # Text extraction path
 ```
 
-`flows/` is created when the first end-to-end flow is written. Do not add empty placeholder pages.
+Do not add empty placeholder pages.
 
 Guidelines: [Documentation](../development/documentation.md). Database setup: [Database](../development/database.md).
 
@@ -77,9 +82,9 @@ flowchart TB
         API[api/ future]
     end
 
-    subgraph App["Application — decided, mostly not implemented"]
-        Workflows[workflows/ scaffold]
-        Services[application services planned]
+    subgraph App["Application"]
+        Workflows[workflows/ text extraction]
+        Services[canonical persistence planned]
     end
 
     subgraph Capabilities["Agent capabilities"]
@@ -96,6 +101,8 @@ flowchart TB
     end
 
     CLI --> Agents
+    CLI --> Workflows
+    Workflows --> Agents
     CLI -.-> Services
     API -.-> Services
     Services --> Agents
@@ -109,17 +116,18 @@ flowchart TB
     Workflows -.-> Services
 ```
 
-**Implemented today:** CLI → Profile Analyzer agent. Application services and repositories do not exist yet. They are the next Profile Ingestion milestone, not extra deployables.
+**Implemented today:** CLI → Profile Analyzer, and CLI → `ProfileIngestionFlow` → Profile Extraction agent. Repositories do not exist yet. Canonical profile persistence is still later, not an extra deployable.
 
 ### Key principle
 
 - **`agents/`** = capabilities (AI/specialized work), not workflow owners
-- **`models/`** = agent input/output contracts (not persistence, not ingestion)
+- **`models/`** = agent and ingestion I/O contracts (not persistence)
 - **`prompts/`** = how we talk to the LLM (instructions)
 - **`tools/`** = how we connect outward (OpenAI, etc.)
 - **`db/`** = how domain state is stored (SQLAlchemy; not used by agents yet)
+- **`workflows/`** = deterministic application sequencing (text extraction today)
 - **`cli.py` / `api/`** = how the user invokes the system
-- **application services / repositories** = planned; they own persistence, transactions, and authorization
+- **repositories** = planned; they own persistence. Authorization stays in the application layer.
 
 This lets us replace CLI with an API later without rewriting capabilities. The API should call application services, not agents directly. See [ADR 003](../adr/003-application-owns-workflows.md).
 
@@ -131,10 +139,14 @@ This lets us replace CLI with an API later without rewriting capabilities. The A
 | `app/db/` | SQLAlchemy Base, engine/session, ORM models |
 | `alembic/` | Schema migrations |
 | `app/models/profile.py` | Profile Analyzer I/O contract (`ProfileInput` / `ProfileAnalysis`) |
-| `app/prompts/profile.py` | LLM instruction text |
+| `app/models/profile_ingestion.py` | Ingestion request and per-source extraction contracts |
+| `app/prompts/profile.py` | Analyzer instruction text |
+| `app/prompts/profile_extraction.py` | Extraction instruction text |
 | `app/tools/llm.py` | Call OpenAI + parse structured output |
-| `app/agents/profile/agent.py` | Run the analysis flow |
-| `app/cli.py` | Read JSON file and print result |
+| `app/agents/profile/agent.py` | Run the analysis capability |
+| `app/agents/profile/extraction.py` | Extract facts from one source |
+| `app/workflows/profile_ingestion.py` | Normalize sources and extract each text source |
+| `app/cli.py` | `analyze-profile` and `extract-profile` |
 | `tests/*` | Verify contracts and flow |
 
 ## What does "placeholder" mean?
@@ -154,7 +166,8 @@ They are **not** a frozen map of the [modular monolith components](overview.md#t
 | `alembic.ini` | Alembic config; database URL comes from Settings, not this file |
 | `.env` | Local secrets (`OPENAI_API_KEY`, `DATABASE_URL`, `GITHUB_TOKEN`) – **not in git** |
 | `.env.example` | Safe shared template |
-| `examples/sample_profile.json` | Sample input for CLI runs |
+| `examples/sample_profile.json` | Sample Profile Analyzer input |
+| `examples/sample_profile_ingestion.json` | Sample text ingestion request |
 
 ## How Python finds the `app` package
 

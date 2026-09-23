@@ -2,7 +2,7 @@
 
 This page covers persistent career-domain data: what is **implemented** in the current schema, what is **decided** as design, and what remains **proposed** or a **future consideration**.
 
-The runtime analysis contract (`ProfileInput` / `ProfileAnalysis`) is documented in [Models](../design/models.md). That contract is **not** the canonical Candidate Profile described here, and it is **not** the future CV/LinkedIn ingestion payload.
+The runtime analysis contract (`ProfileInput` / `ProfileAnalysis`) is documented in [Models](../design/models.md). That contract is **not** the canonical Candidate Profile described here. The ingestion contract (`ProfileIngestionRequest` / `ExtractedCandidateProfile`) is documented in [Profile ingestion](../design/profile-ingestion.md). Extraction output is also **not** the canonical Candidate Profile.
 
 Status of topics on this page:
 
@@ -11,6 +11,7 @@ Status of topics on this page:
 | User vs Candidate Profile | Decided |
 | AuthIdentity vs User | Decided; in the schema |
 | User-owned vs global catalog ownership | Decided; see [Ownership](#ownership) |
+| Text profile extraction (not persisted) | **Implemented**; see [Profile ingestion](../design/profile-ingestion.md) |
 | Structured ingestion, not wholesale raw docs | Decided |
 | Conflict detection + HITL | Decided |
 | Application services own persistence and authorization | Decided; not implemented. [ADR 003](../adr/003-application-owns-workflows.md) |
@@ -108,7 +109,7 @@ Rules:
 
 ## CV and LinkedIn ingestion
 
-**Decided** as a design principle. **Not implemented** in the running application.
+**Decided** as a design principle. **Partly implemented:** text sources are extracted per source into `ExtractedCandidateProfile` values. Those values are not stored. File and URL acquisition, reconciliation, and canonical writes are **not implemented**.
 
 Raw CV and LinkedIn documents must not be passed wholesale through every downstream agent.
 
@@ -126,11 +127,13 @@ Original source files will eventually live in **object storage**. Meaningful par
 
 Vector / semantic retrieval is **not** a current requirement. Reconsider it only if a concrete use case needs it.
 
-The next implementation milestone does **not** ingest files. It persists already-structured JSON. See [Next implementation milestone](overview.md#next-implementation-milestone).
+Text extraction does **not** ingest files or URLs and does **not** persist. See [Profile ingestion](../design/profile-ingestion.md). Canonical persistence is still later. See [Next implementation milestone](overview.md#next-implementation-milestone).
+
+**Decided, not implemented:** canonical updates use merge and do not implicitly delete. A fact that a new source omits stays on `CandidateProfile`. A tailored CV may leave out valid skills or experience on purpose. Deletion or replacement needs an explicit action.
 
 ## Conflicting data and human-in-the-loop
 
-**Decided.** **Not implemented.**
+**Decided.** **Not implemented.** Per-source extraction keeps each source's facts separate so a later step can compare them. That comparison is not built yet.
 
 CV and LinkedIn will disagree. The system must not silently pick a winner.
 
@@ -143,11 +146,11 @@ CV and LinkedIn will disagree. The system must not silently pick a winner.
 
 Downstream agents must not treat unresolved critical information as verified truth.
 
-Conflict/provenance tables are **not** part of the current schema. The structured-JSON Profile Ingestion slice does not require them.
+Conflict/provenance tables are **not** part of the current schema. Text extraction does not add them.
 
 ## Data access principles
 
-**Decided.** Not implemented. The next Profile Ingestion slice introduces the first application service and repository.
+**Decided.** Repositories are not implemented. Text extraction is an application flow with no database access.
 
 Avoid:
 

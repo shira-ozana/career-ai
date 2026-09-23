@@ -6,7 +6,9 @@
 tests/
 ├── __init__.py
 ├── test_models_profile.py
+├── test_models_profile_ingestion.py
 ├── test_profile_agent.py
+├── test_profile_extraction.py
 ├── test_db_models.py
 └── test_db_config.py
 ```
@@ -42,6 +44,10 @@ flowchart TB
         T4[agent returns expected analysis via fake LLM]
     end
 
+    subgraph Ingestion["test_models_profile_ingestion.py / test_profile_extraction.py"]
+        T7[text request, per-source extraction, file/URL unsupported]
+    end
+
     subgraph Persistence["test_db_models.py / test_db_config.py"]
         T5[ORM tables, relationships, constraints]
         T6[DATABASE_URL config and lazy engine]
@@ -49,6 +55,7 @@ flowchart TB
 
     Models --> Contract[Data contract]
     Agent --> Flow[Agent flow]
+    Ingestion --> Extract[Text extraction flow]
     Persistence --> Schema[Persistence foundation]
 ```
 
@@ -87,6 +94,14 @@ Tests the agent end-to-end **without OpenAI**:
 5. Asserts the schema sent is `ProfileAnalysis`
 6. Asserts the user prompt contains the person's name
 
+### Profile ingestion tests
+
+`test_models_profile_ingestion.py` checks the ingestion and extraction contracts: valid text, multiple sources, empty or invalid sources, source type, partial dates, and rejection of `user_id` and analysis fields.
+
+`test_profile_extraction.py` checks normalization, one agent call per text source, isolated prompts, mock workflow execution, file/URL failure before any model call, the `extract-profile --mock` CLI, and that the Profile Analyzer still returns `ProfileAnalysis`.
+
+No test calls OpenAI or PostgreSQL.
+
 ### `test_db_models.py`
 
 Inspects SQLAlchemy metadata only (no database connection):
@@ -120,7 +135,7 @@ not the internal details of the OpenAI SDK.
 
 | Gap | Future test type |
 |-----|------------------|
-| CLI file reading | `main(...)` test with temp JSON |
+| `analyze-profile` file reading against a live model | optional; `extract-profile --mock` is covered |
 | Missing API key failure | unit test for `require_openai_api_key` |
 | Real OpenAI integration | optional marked test (`@pytest.mark.integration`) |
 | Prompt regression | evaluation suite with gold examples |

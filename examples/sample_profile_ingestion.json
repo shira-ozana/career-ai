@@ -1,0 +1,14 @@
+{
+  "sources": [
+    {
+      "kind": "text",
+      "source_type": "user_text",
+      "content": "I am a Senior Software Engineer based in Tel Aviv. I have worked at Example Corp since January 2023 building FastAPI services. Skills: Python, FastAPI, PostgreSQL."
+    },
+    {
+      "kind": "text",
+      "source_type": "portfolio",
+      "content": "Built a multi-agent Career AI platform that analyzes profiles and searches jobs."
+    }
+  ]
+}

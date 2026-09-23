@@ -2,7 +2,7 @@
 
 ## File
 
-`app/prompts/profile.py`
+`app/prompts/profile.py` — Profile Analyzer. Extraction prompts are separate: `app/prompts/profile_extraction.py`. See [Profile ingestion](profile-ingestion.md).
 
 ## Why prompts live in a separate folder
 

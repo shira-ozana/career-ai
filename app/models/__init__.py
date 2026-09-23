@@ -1,10 +1,43 @@
-"""Agent input/output contracts (Pydantic).
+"""Pydantic contracts for agent capabilities and profile ingestion.
 
-These are runtime analysis contracts for agents and the CLI. They are not
-SQLAlchemy persistence models (``app.db.models``) and are not the future
-CV/LinkedIn ingestion payload.
+Analyzer models (``ProfileInput`` / ``ProfileAnalysis``) are not the ingestion
+contract and are not SQLAlchemy persistence models. Ingestion and extraction
+models live in ``app.models.profile_ingestion`` and are not canonical
+``CandidateProfile`` state.
 """
 
 from app.models.profile import ExperienceItem, ProfileAnalysis, ProfileInput
+from app.models.profile_ingestion import (
+    ExtractedCandidateProfile,
+    ExtractedDate,
+    ExtractedExperience,
+    ExtractedProfileSource,
+    FileProfileSource,
+    NormalizedProfileSource,
+    ProfileExtractionInput,
+    ProfileExtractionResult,
+    ProfileIngestionRequest,
+    ProfileSource,
+    ProfileSourceType,
+    TextProfileSource,
+    UrlProfileSource,
+)
 
-__all__ = ["ExperienceItem", "ProfileAnalysis", "ProfileInput"]
+__all__ = [
+    "ExperienceItem",
+    "ExtractedCandidateProfile",
+    "ExtractedDate",
+    "ExtractedExperience",
+    "ExtractedProfileSource",
+    "FileProfileSource",
+    "NormalizedProfileSource",
+    "ProfileAnalysis",
+    "ProfileExtractionInput",
+    "ProfileExtractionResult",
+    "ProfileIngestionRequest",
+    "ProfileInput",
+    "ProfileSource",
+    "ProfileSourceType",
+    "TextProfileSource",
+    "UrlProfileSource",
+]
