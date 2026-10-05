@@ -30,14 +30,19 @@ class ProfileAnalyzerAgent:
 So you can do:
 
 ```python
-# Production
+# CLI: one connection owner
+async with create_llm_client(LLMProvider.OPENAI, settings) as llm:
+    agent = ProfileAnalyzerAgent(llm=llm)
+
+# Direct use still defaults to OpenAI StructuredLLM.
+# That caller owns the client. The agent does not close it.
 agent = ProfileAnalyzerAgent()
 
 # Tests
 agent = ProfileAnalyzerAgent(llm=fake_llm)
 ```
 
-Simple, clean dependency injection.
+Simple, clean dependency injection. The CLI does not use the no-argument default.
 
 ## `analyze` steps
 

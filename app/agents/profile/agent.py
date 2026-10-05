@@ -12,7 +12,13 @@ logger = logging.getLogger(__name__)
 
 
 class ProfileAnalyzerAgent:
-    """Analyze a professional profile and return structured recommendations."""
+    """Analyze a professional profile and return structured recommendations.
+
+    Pass ``llm`` to inject a client. The CLI opens that client with
+    ``create_llm_client`` and closes it when the command finishes. Omitting
+    ``llm`` constructs OpenAI ``StructuredLLM`` for direct use; this agent
+    does not choose a provider and does not close that fallback client.
+    """
 
     def __init__(self, llm: StructuredLLMClient | None = None) -> None:
         self.llm = llm or StructuredLLM()

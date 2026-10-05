@@ -21,9 +21,8 @@ returned for ``ExtractedCandidateProfile``. Other schemas raise ``TypeError``.
 Provider independence
 ---------------------
 Agents depend on ``StructuredLLMClient`` (a Protocol), not on a vendor SDK.
-The CLI injects ``StructuredLLM`` (OpenAI), ``CursorStructuredLLMClient``, or
-this mock. Adding a backend means implementing ``complete_structured``; agent
-code stays unchanged.
+The CLI opens one backend with ``create_llm_client`` and injects it. Adding a
+backend means implementing ``complete_structured``; agent code stays unchanged.
 """
 
 from __future__ import annotations

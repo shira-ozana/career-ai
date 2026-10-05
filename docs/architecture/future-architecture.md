@@ -122,8 +122,8 @@ What exists today is narrower than that diagram:
 
 | Path | What actually runs |
 |------|--------------------|
-| `analyze-profile` | The CLI calls `ProfileAnalyzerAgent` directly. The agent calls `StructuredLLMClient`. Nothing is persisted. |
-| `extract-profile` | The CLI selects a provider, injects it into `ProfileExtractionAgent`, and calls `ProfileIngestionFlow`. The flow normalizes sources and extracts each text source. Nothing is persisted. |
+| `analyze-profile` | The CLI opens `LLMProvider.OPENAI` with `create_llm_client`, injects it into `ProfileAnalyzerAgent`, and calls `analyze`. Nothing is persisted. |
+| `extract-profile` | The CLI resolves `LLMProvider`, opens it with `create_llm_client`, injects it into `ProfileExtractionAgent`, and calls `ProfileIngestionFlow`. The flow normalizes sources and extracts each text source. Nothing is persisted. |
 
 There is no repository, no application service that writes `CandidateProfile`, and no authorization check. `app/workflows/` is ordinary Python. Its package docstring states that these modules are not a workflow engine.
 
@@ -357,10 +357,12 @@ StructuredLLMClient
 | Provider | Class | Who selects it |
 |----------|-------|----------------|
 | Mock | `MockStructuredLLM` | Tests, and `extract-profile --mock` / `--provider mock`. Returns a fixed `ExtractedCandidateProfile` or `ProfileAnalysis`. No network. |
-| OpenAI | `StructuredLLM` | Default for `extract-profile`. The only provider `analyze-profile` constructs (`ProfileAnalyzerAgent()` with no injected client). Uses `AsyncOpenAI.responses.parse` and `output_parsed`. |
+| OpenAI | `StructuredLLM` | Default for `extract-profile`. The only provider `analyze-profile` opens, via `create_llm_client(LLMProvider.OPENAI, settings)`. Uses `AsyncOpenAI.responses.parse` and `output_parsed`. |
 | Cursor | `CursorStructuredLLMClient` | `extract-profile --provider cursor` only. `analyze-profile` rejects a provider flag. |
 
-The CLI injects the client. The extraction agent does not branch on provider. If `llm` is omitted, the agent constructs `StructuredLLM`, which is the OpenAI default, not a router.
+`LLMProvider` in `app/tools/llm.py` is the provider set. The CLI parses external strings with `LLMProvider.parse` and derives `--provider` choices from that enum. `create_llm_client` is the connection context manager: it yields the adapter and closes resources it owns.
+
+The CLI injects the client. Neither agent branches on provider. If `llm` is omitted, the agent constructs `StructuredLLM` for direct use. That fallback is the OpenAI default, not a router, and the CLI does not use it.
 
 `complete_structured` accepts an optional `model`. Neither agent passes one. Each adapter falls back to Settings: `OPENAI_MODEL` (default `gpt-4o-mini`) or `CURSOR_MODEL` (default `composer-2.5`). Analysis and OpenAI extraction therefore share one model setting. That is centralized configuration. It is not task-based routing.
 
@@ -385,7 +387,7 @@ The package is the official Python SDK `cursor-sdk`, imported as `cursor_sdk`. L
 | Property | Current behavior |
 |----------|------------------|
 | API | Async. `AsyncClient.launch_bridge`, then `AsyncAgent.prompt`. |
-| Bridge lifetime | One bridge per CLI execution. `extract-profile` opens `CursorStructuredLLMClient` as an async context manager and closes it when the command finishes. |
+| Bridge lifetime | One bridge per CLI execution. `create_llm_client` opens `CursorStructuredLLMClient` as an async context manager and closes it when the command finishes, including on failure and cancellation. |
 | Prompt lifetime | Each `complete_structured` is an independent one-shot `AsyncAgent.prompt` (create, wait, dispose). Two sources do not share a conversation. |
 | Result | Final assistant text from `RunResult.result`. A status other than `finished` raises `CursorRunError` and is not parsed. |
 | Runtime | Local agent. `tools=[]` is local-only, so this path does not use a cloud agent. |
@@ -809,7 +811,7 @@ Derived from the repository, not from a target diagram.
 | Text normalization and per-source extraction | `app/workflows/profile_ingestion.py` |
 | Pydantic validation of extraction output, including the Cursor JSON boundary | `app/tools/cursor_llm.py`, ingestion models |
 | Unversioned extraction and analyzer prompts | `app/prompts/` |
-| Provider choice on `extract-profile` (`mock`, `openai`, `cursor`); OpenAI-only `analyze-profile` | `app/cli.py` |
+| Provider choice on `extract-profile` (`LLMProvider`: `openai`, `cursor`, `mock`); OpenAI-only `analyze-profile` | `app/cli.py` selects the provider. `create_llm_client` in `app/tools/llm.py` opens and closes it |
 | Model ids in Settings (`OPENAI_MODEL`, `CURSOR_MODEL`) | `app/config.py` |
 | PostgreSQL schema for users, canonical profile, catalog, matches, resume versions | `app/db/models/` |
 | Contract and adapter tests that do not call live model APIs | `tests/` |

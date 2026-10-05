@@ -23,6 +23,11 @@ class ProfileExtractionAgent:
 
     ``source`` is the extraction input: source type and content only.
     User identity is not accepted and must not be added to the prompt.
+
+    Pass ``llm`` to inject a client. The CLI opens that client with
+    ``create_llm_client``. Omitting ``llm`` constructs OpenAI ``StructuredLLM``
+    for direct use; this agent does not choose a provider and does not close
+    that fallback client.
     """
 
     def __init__(self, llm: StructuredLLMClient | None = None) -> None:

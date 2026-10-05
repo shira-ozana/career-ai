@@ -145,7 +145,7 @@ This lets us replace CLI with an API later without rewriting capabilities. The A
 | `app/models/profile_ingestion.py` | Ingestion request and per-source extraction contracts |
 | `app/prompts/profile.py` | Analyzer instruction text |
 | `app/prompts/profile_extraction.py` | Extraction instruction text |
-| `app/tools/llm.py` | `StructuredLLMClient` protocol and OpenAI structured output |
+| `app/tools/llm.py` | `LLMProvider`, `StructuredLLMClient`, OpenAI `StructuredLLM`, and `create_llm_client` |
 | `app/tools/cursor_llm.py` | Optional Cursor agent adapter; Pydantic validates the text |
 | `app/tools/mock_llm.py` | Deterministic structured LLM for tests and `--mock` |
 | `app/agents/profile/agent.py` | Run the analysis capability |

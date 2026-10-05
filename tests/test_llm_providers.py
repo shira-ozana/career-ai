@@ -26,7 +26,7 @@ from app.tools.cursor_llm import (
     json_text_from_cursor_response,
     parse_cursor_structured_output,
 )
-from app.tools.llm import StructuredLLM
+from app.tools.llm import LLMProvider, StructuredLLM
 from app.workflows.profile_ingestion import ProfileIngestionFlow
 
 _SAMPLE = "examples/sample_profile_ingestion.json"
@@ -344,7 +344,7 @@ def test_extract_profile_help_lists_providers(capsys: pytest.CaptureFixture[str]
     assert exc_info.value.code == 0
     help_text = capsys.readouterr().out
     assert "--provider" in help_text
-    assert "{mock,openai,cursor}" in help_text
+    assert "{" + ",".join(provider.value for provider in LLMProvider) + "}" in help_text
     assert "--mock" in help_text
 
 
@@ -443,6 +443,9 @@ def test_extract_profile_default_provider_is_openai(
         def __init__(self, settings: Settings | None = None, client: object | None = None) -> None:
             self.settings = settings
 
+        async def aclose(self) -> None:
+            return None
+
         async def complete_structured(
             self,
             *,
@@ -454,7 +457,7 @@ def test_extract_profile_default_provider_is_openai(
             return ExtractedCandidateProfile(current_title="default openai")
 
     monkeypatch.setattr("app.cli.get_settings", lambda: _cursor_settings())
-    monkeypatch.setattr("app.cli.StructuredLLM", RecordingLLM)
+    monkeypatch.setattr("app.tools.llm.StructuredLLM", RecordingLLM)
 
     with pytest.raises(SystemExit) as exc_info:
         main(["extract-profile", _SAMPLE])
@@ -475,6 +478,9 @@ def test_extract_profile_openai_provider_stays_on_structured_llm(
             assert settings is not None
             constructed.append(settings)
 
+        async def aclose(self) -> None:
+            return None
+
         async def complete_structured(
             self,
             *,
@@ -488,7 +494,7 @@ def test_extract_profile_openai_provider_stays_on_structured_llm(
             return ExtractedCandidateProfile(current_title="OpenAI portfolio")
 
     monkeypatch.setattr("app.cli.get_settings", lambda: _cursor_settings())
-    monkeypatch.setattr("app.cli.StructuredLLM", RecordingLLM)
+    monkeypatch.setattr("app.tools.llm.StructuredLLM", RecordingLLM)
 
     with pytest.raises(SystemExit) as exc_info:
         main(["extract-profile", _SAMPLE, "--provider", "openai"])
@@ -501,3 +507,53 @@ def test_extract_profile_openai_provider_stays_on_structured_llm(
     ]
     assert constructed[0].openai_api_key == "sk-test"
     assert _FAKE_CURSOR_KEY not in capsys.readouterr().out
+
+
+def test_extract_profile_rejects_unknown_provider() -> None:
+    with pytest.raises(SystemExit) as exc_info:
+        main(["extract-profile", _SAMPLE, "--provider", "anthropic"])
+    assert exc_info.value.code == 2
+
+
+def test_llm_provider_parse_accepts_only_defined_values() -> None:
+    assert [LLMProvider.parse(provider.value) for provider in LLMProvider] == list(LLMProvider)
+
+
+def test_llm_provider_parse_rejects_unknown_input() -> None:
+    with pytest.raises(ValueError, match="Unsupported LLM provider") as exc_info:
+        LLMProvider.parse("anthropic")
+
+    message = str(exc_info.value)
+    for provider in LLMProvider:
+        assert provider.value in message
+
+
+def test_extract_profile_openai_missing_key_exits(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setattr(
+        "app.cli.get_settings",
+        lambda: _cursor_settings(openai_api_key=""),
+    )
+
+    with pytest.raises(SystemExit) as exc_info:
+        main(["extract-profile", _SAMPLE, "--provider", "openai"])
+
+    assert exc_info.value.code == 1
+    captured = capsys.readouterr()
+    assert "OPENAI_API_KEY is not set" in captured.err
+    assert "sk-test" not in captured.err
+    assert _FAKE_CURSOR_KEY not in captured.err
+
+
+def test_analyze_profile_missing_openai_key_still_raises(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "app.cli.get_settings",
+        lambda: _cursor_settings(openai_api_key=""),
+    )
+
+    with pytest.raises(ValueError, match="OPENAI_API_KEY is not set"):
+        main(["analyze-profile", "examples/sample_profile.json"])

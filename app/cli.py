@@ -13,8 +13,7 @@ from app.agents.profile import ProfileAnalyzerAgent, ProfileExtractionAgent
 from app.config import Settings, get_settings
 from app.models.profile import ProfileInput
 from app.models.profile_ingestion import ProfileIngestionRequest
-from app.tools.llm import StructuredLLM, StructuredLLMClient
-from app.tools.mock_llm import MockStructuredLLM
+from app.tools.llm import LLMProvider, StructuredLLMClient, create_llm_client
 from app.workflows.profile_ingestion import (
     ProfileIngestionFlow,
     UnsupportedProfileSourceError,
@@ -28,37 +27,28 @@ def _configure_logging(level: str) -> None:
     )
 
 
-async def _run_profile_analysis(profile_path: Path) -> int:
+async def _run_profile_analysis(profile_path: Path, *, settings: Settings) -> int:
     raw = json.loads(profile_path.read_text(encoding="utf-8"))
     profile = ProfileInput.model_validate(raw)
-    agent = ProfileAnalyzerAgent()
-    analysis = await agent.analyze(profile)
+    async with create_llm_client(LLMProvider.OPENAI, settings) as llm:
+        agent = ProfileAnalyzerAgent(llm=llm)
+        analysis = await agent.analyze(profile)
     print(analysis.model_dump_json(indent=2))
     return 0
 
 
-def _resolve_extract_provider(parser: argparse.ArgumentParser, args: argparse.Namespace) -> str:
+def _resolve_extract_provider(
+    parser: argparse.ArgumentParser,
+    args: argparse.Namespace,
+) -> LLMProvider:
     """Resolve extract-profile provider. Default remains OpenAI."""
-    if args.mock and args.provider not in {None, "mock"}:
+    if args.mock and args.provider not in {None, LLMProvider.MOCK}:
         parser.error("--mock cannot be combined with a different --provider")
-    if args.mock or args.provider == "mock":
-        return "mock"
+    if args.mock or args.provider == LLMProvider.MOCK:
+        return LLMProvider.MOCK
     if args.provider is None:
-        return "openai"
-    return str(args.provider)
-
-
-def _extraction_llm(provider: str, settings: Settings) -> StructuredLLMClient:
-    if provider == "mock":
-        logging.getLogger(__name__).info(
-            "extract-profile using MockStructuredLLM (no external API)"
-        )
-        return MockStructuredLLM()
-    if provider == "openai":
-        logging.getLogger(__name__).info("extract-profile using OpenAI StructuredLLM")
-        return StructuredLLM(settings=settings)
-    msg = f"Unsupported extract-profile provider: {provider}"
-    raise ValueError(msg)
+        return LLMProvider.OPENAI
+    return LLMProvider.parse(args.provider)
 
 
 async def _emit_extraction(request: ProfileIngestionRequest, llm: StructuredLLMClient) -> int:
@@ -76,28 +66,17 @@ async def _emit_extraction(request: ProfileIngestionRequest, llm: StructuredLLMC
 async def _run_profile_extraction(
     request_path: Path,
     *,
-    provider: str,
+    provider: LLMProvider,
     settings: Settings,
 ) -> int:
     raw = json.loads(request_path.read_text(encoding="utf-8"))
     request = ProfileIngestionRequest.model_validate(raw)
-
-    if provider == "cursor":
-        from app.tools.cursor_llm import CursorStructuredLLMClient
-
-        logging.getLogger(__name__).info(
-            "extract-profile using CursorStructuredLLMClient model=%s",
-            settings.cursor_model_name(),
-        )
-        try:
-            llm = CursorStructuredLLMClient(settings=settings)
-        except ValueError as exc:
-            print(str(exc), file=sys.stderr)
-            return 1
-        async with llm:
+    try:
+        async with create_llm_client(provider, settings) as llm:
             return await _emit_extraction(request, llm)
-
-    return await _emit_extraction(request, _extraction_llm(provider, settings))
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -128,16 +107,17 @@ def main(argv: list[str] | None = None) -> None:
     )
     extract.add_argument(
         "--provider",
-        choices=("mock", "openai", "cursor"),
+        choices=tuple(provider.value for provider in LLMProvider),
         help=(
             "Structured LLM provider for extraction. "
-            "Default: openai. --mock is the same as --provider mock."
+            f"Default: {LLMProvider.OPENAI.value}. "
+            f"--mock is the same as --provider {LLMProvider.MOCK.value}."
         ),
     )
     extract.add_argument(
         "--mock",
         action="store_true",
-        help="Use the deterministic mock LLM (same as --provider mock)",
+        help=(f"Use the deterministic mock LLM (same as --provider {LLMProvider.MOCK.value})"),
     )
 
     args = parser.parse_args(argv)
@@ -145,7 +125,7 @@ def main(argv: list[str] | None = None) -> None:
     _configure_logging(settings.log_level)
 
     if args.command == "analyze-profile":
-        raise SystemExit(asyncio.run(_run_profile_analysis(args.profile_path)))
+        raise SystemExit(asyncio.run(_run_profile_analysis(args.profile_path, settings=settings)))
     if args.command == "extract-profile":
         provider = _resolve_extract_provider(parser, args)
         raise SystemExit(

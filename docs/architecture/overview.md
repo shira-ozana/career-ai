@@ -379,21 +379,26 @@ The Profile Analyzer defines a typed **analysis** contract (`ProfileInput` → `
 ```mermaid
 flowchart TB
     User([User]) -->|JSON path| CLI[app/cli.py]
-    CLI -->|ProfileInput| Agent[ProfileAnalyzerAgent]
-    Agent -->|profile JSON + prompts| LLM[StructuredLLM]
+    CLI -->|LLMProvider.OPENAI| Factory[create_llm_client]
+    Factory --> LLM[StructuredLLM]
+    CLI -->|ProfileInput + client| Agent[ProfileAnalyzerAgent]
+    Agent -->|profile JSON + prompts| LLM
     LLM -->|responses.parse| OpenAI[OpenAI API]
     OpenAI -->|structured JSON| LLM
     LLM -->|ProfileAnalysis| Agent
     Agent -->|ProfileAnalysis| CLI
     CLI -->|JSON stdout| User
 
-    CLI2[extract-profile] -->|ProfileIngestionRequest| Flow[ProfileIngestionFlow]
+    CLI2[extract-profile] -->|selected LLMProvider| Factory2[create_llm_client]
+    Factory2 --> Client[StructuredLLMClient]
+    CLI2 -->|ProfileIngestionRequest| Flow[ProfileIngestionFlow]
     Flow -->|one text source| Extract[ProfileExtractionAgent]
-    Extract --> LLM
+    Extract --> Client
     Extract -->|ExtractedCandidateProfile| Flow
     Flow -->|ProfileExtractionResult| CLI2
 
-    Settings[Settings / .env] -.-> LLM
+    Settings[Settings / .env] -.-> Factory
+    Settings -.-> Factory2
     Models[Pydantic models] -.-> Agent
     Prompts[Prompt templates] -.-> Agent
 ```

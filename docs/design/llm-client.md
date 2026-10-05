@@ -1,10 +1,63 @@
-# LLM client – `StructuredLLM`
+# LLM client
 
-## File
+## Files
 
-`app/tools/llm.py`
+| File | Role |
+|------|------|
+| `app/tools/llm.py` | `LLMProvider`, `StructuredLLMClient`, OpenAI `StructuredLLM`, and `create_llm_client` |
+| `app/tools/cursor_llm.py` | Cursor adapter. Imported only when that provider is selected |
+| `app/tools/mock_llm.py` | Deterministic client for tests and `--mock` |
 
 ## Role
+
+Agents call `StructuredLLMClient`. They do not choose a provider, open a connection, or import a vendor SDK.
+
+`create_llm_client(provider, settings)` is the connection entry point. It yields a `StructuredLLMClient` and closes resources it owns when the block ends, including on failure and cancellation.
+
+## Provider identity
+
+`LLMProvider` is the only set of provider ids:
+
+| Member | Value | Default |
+|--------|-------|---------|
+| `OPENAI` | `openai` | Yes. `analyze-profile` always uses this member |
+| `CURSOR` | `cursor` | No |
+| `MOCK` | `mock` | No |
+
+`extract-profile --provider` choices are `tuple(provider.value for provider in LLMProvider)`. External strings are parsed with `LLMProvider.parse` at the CLI boundary. `create_llm_client` accepts `LLMProvider`, not a raw string.
+
+Model ids and credentials stay in Settings: `OPENAI_MODEL` (default `gpt-4o-mini`) and `CURSOR_MODEL` (default `composer-2.5`).
+
+## Connection lifecycle
+
+```mermaid
+flowchart LR
+    CLI[CLI] -->|LLMProvider + Settings| Factory[create_llm_client]
+    Factory --> OpenAI[StructuredLLM]
+    Factory --> Cursor[CursorStructuredLLMClient]
+    Factory --> Mock[MockStructuredLLM]
+    OpenAI --> Agent[Agent]
+    Cursor --> Agent
+    Mock --> Agent
+```
+
+| Provider | What the factory opens | What it closes |
+|----------|------------------------|----------------|
+| `openai` | `StructuredLLM`, which creates `AsyncOpenAI` | That `AsyncOpenAI` client, via `StructuredLLM.aclose()` |
+| `cursor` | `CursorStructuredLLMClient` as an async context manager | The bridge and temporary workspace, using the adapter's existing close |
+| `mock` | `MockStructuredLLM` | Nothing |
+
+Ownership is explicit:
+
+- A client created by `create_llm_client` is closed by that context manager.
+- `StructuredLLM(client=...)` does not close an injected OpenAI client.
+- `CursorStructuredLLMClient(text_completion=...)` does not close an injected completion. It closes only the SDK bridge it opened itself.
+
+Both CLI commands use this context manager. `extract-profile` passes the resolved provider. `analyze-profile` passes `LLMProvider.OPENAI` and has no `--provider` flag. The CLI still owns JSON input, stdout, and user-facing errors. A missing API key for the selected `extract-profile` provider is printed to stderr and the command exits `1`.
+
+If an agent is constructed without `llm`, it still builds OpenAI `StructuredLLM` for direct use. That fallback is not a provider switch, and the agent does not close it. The CLI does not use the fallback.
+
+## `StructuredLLM`
 
 A thin OpenAI wrapper that guarantees:
 
@@ -34,6 +87,8 @@ flowchart TB
 | `client` | `AsyncOpenAI(...)` | OpenAI mock |
 
 If no API key is set, `require_openai_api_key()` raises `ValueError`.
+
+`aclose()` closes that `AsyncOpenAI` client only when this object created it. Pass `client` to keep ownership outside `StructuredLLM`. `create_llm_client` calls `aclose()` for the OpenAI provider.
 
 ### `complete_structured(...)`
 
@@ -110,7 +165,7 @@ Benefits:
 | Mock | `MockStructuredLLM` | tests and `extract-profile --mock` |
 | Cursor | `CursorStructuredLLMClient` | `extract-profile --provider cursor` |
 
-`ProfileExtractionAgent` does not know which provider is injected.
+`ProfileExtractionAgent` and `ProfileAnalyzerAgent` do not know which provider is injected. The CLI selects it and passes the client from `create_llm_client`.
 
 ## Cursor provider
 
@@ -129,7 +184,7 @@ A run whose status is not `finished` is not parsed.
 
 ### Why async, and why local
 
-`ProfileExtractionAgent` is async, so the adapter uses `AsyncClient.launch_bridge` and `AsyncAgent.prompt`. The CLI holds one async client for the command and closes it afterward. Each source is a new one-shot prompt, so two sources do not share a conversation.
+`ProfileExtractionAgent` is async, so the adapter uses `AsyncClient.launch_bridge` and `AsyncAgent.prompt`. `create_llm_client` holds one async client for the command and closes it afterward, including when extraction fails or the task is cancelled. Each source is a new one-shot prompt, so two sources do not share a conversation.
 
 Tool restrictions exist for **local** agents only. Cloud agents cannot take `tools=[]`, so this path does not use a cloud agent.
 

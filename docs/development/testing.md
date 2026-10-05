@@ -10,6 +10,7 @@ tests/
 ├── test_profile_agent.py
 ├── test_profile_extraction.py
 ├── test_llm_providers.py
+├── test_llm_client.py
 ├── test_db_models.py
 └── test_db_config.py
 ```
@@ -101,7 +102,9 @@ Tests the agent end-to-end **without OpenAI**:
 
 `test_profile_extraction.py` checks normalization, one agent call per text source, isolated prompts, mock workflow execution, file/URL failure before any model call, the `extract-profile --mock` CLI, and that the Profile Analyzer still returns `ProfileAnalysis`.
 
-`test_llm_providers.py` checks extraction provider selection, a missing `CURSOR_API_KEY`, Cursor JSON validation, and that the Cursor adapter is injected behind `StructuredLLMClient`. The Cursor SDK boundary is faked. OpenAI is tested with an in-memory client. `analyze-profile` does not grow a `--provider` flag.
+`test_llm_providers.py` checks extraction provider selection, `LLMProvider` parsing, a missing API key, Cursor JSON validation, and that the Cursor adapter is injected behind `StructuredLLMClient`. The Cursor SDK boundary is faked. OpenAI is tested with an in-memory client. `analyze-profile` does not grow a `--provider` flag.
+
+`test_llm_client.py` checks `create_llm_client`: supported providers, rejected raw strings, lazy Cursor import, and cleanup on success, failure, and cancellation. Injected OpenAI and Cursor clients are left open. No test calls a live provider.
 
 No test calls OpenAI, Cursor, or PostgreSQL.
 

@@ -33,8 +33,8 @@ flowchart LR
 1. `env_file=".env"` – reads the local file automatically.
 2. `extra="ignore"` – unknown `.env` keys (e.g. `GITHUB_TOKEN`) do **not** break loading.
 3. `get_settings()` is wrapped with `@lru_cache` – created once per process.
-4. `require_openai_api_key()` raises a clear error if the key is missing.
-5. `require_cursor_api_key()` raises a clear error if the Cursor key is missing. The CLI prints that error and exits `1` when `--provider cursor` is selected.
+4. `require_openai_api_key()` raises a clear error if the key is missing. `extract-profile` prints that error and exits `1`. `analyze-profile` lets the same `ValueError` propagate.
+5. `require_cursor_api_key()` raises a clear error if the Cursor key is missing. `extract-profile --provider cursor` prints that error and exits `1` before any SDK call.
 6. `require_database_url()` raises a clear error if the URL is missing. The Profile Analyzer CLI does not call it.
 
 ## Environment files
@@ -66,7 +66,8 @@ Safe template without real secrets – documents which variables are needed.
 |----------|--------------|
 | `StructuredLLM` | `openai_api_key`, `openai_model` |
 | `CursorStructuredLLMClient` | `cursor_api_key`, `cursor_model` |
-| `cli.py` | `log_level`, and which extraction provider to construct |
+| `create_llm_client` | The selected provider's credentials and model id from Settings |
+| `cli.py` | `log_level`, and which `LLMProvider` to pass to `create_llm_client` |
 | `app/db/session.py`, Alembic | `database_url` (when creating an engine or migrating) |
 | `scripts/git-push.sh` | `GITHUB_USERNAME`, `GITHUB_TOKEN` (directly from `.env`, not via Settings) |
 

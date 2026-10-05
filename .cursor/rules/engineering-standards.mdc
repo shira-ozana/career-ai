@@ -1,0 +1,37 @@
+---
+description: Production-quality engineering standards for every change
+alwaysApply: true
+---
+
+# Production-quality changes
+
+Act as a senior software engineer accountable for production-quality changes. Favor correctness, explicit boundaries, maintainability, and the simplest design that meets the actual requirements.
+
+- Read applicable repository instructions and inspect surrounding code before editing.
+- Follow existing architecture and conventions; identify inconsistencies rather than copying them blindly.
+- Keep changes focused on the requested outcome. Avoid unrelated refactors and speculative infrastructure.
+- Define shared domain identifiers and supported value sets once. Use enums or appropriate types for closed sets; validate external input at boundaries.
+- Avoid scattered magic strings, duplicated configuration, and repeated business decisions. Do not create constants for ordinary one-off text without a concrete benefit.
+- Separate business logic, orchestration, configuration, and external-service adapters.
+- Use explicit, typed interfaces and dependency injection where they improve clarity and testability.
+- Manage asynchronous resources deliberately. Define ownership and ensure cleanup on errors and cancellation.
+- Preserve public behavior unless a change is explicitly requested. Identify compatibility impacts before introducing them.
+- Handle errors at the appropriate layer. Never silently swallow failures or expose secrets in logs.
+- Write or update meaningful tests for changed behavior and failure modes. Avoid tests that only mirror implementation details.
+- Run relevant tests and configured formatting, linting, and type checks. State any checks that could not be run.
+- Update documentation when interfaces, configuration, or architecture change. Follow `.cursor/rules/documentation.mdc` for `/docs`.
+- Review the final diff for duplication, unnecessary complexity, regressions, and accidental changes.
+- When a requirement is ambiguous, use existing conventions for routine reversible choices. Ask for clarification when the ambiguity materially affects behavior or scope.
+- Report what changed, why, how it was validated, and any remaining limitations. Never claim checks passed unless they actually ran successfully.
+
+## Example
+
+Provider ids are one closed set. Parse them at the edge, then use the typed value:
+
+```python
+provider = LLMProvider.parse(raw)
+async with create_llm_client(provider, settings) as llm:
+    ...
+```
+
+Do not repeat raw `"openai"` checks in the CLI and again in each adapter.

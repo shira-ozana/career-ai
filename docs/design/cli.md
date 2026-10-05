@@ -72,24 +72,33 @@ flowchart TD
 
 1. Read the JSON file
 2. Validate into `ProfileInput` (invalid input raises Pydantic error)
-3. Create the agent
-4. Run `await agent.analyze(...)`
-5. Print `analysis.model_dump_json(indent=2)` to stdout
-6. Return exit code `0`
+3. Open `create_llm_client(LLMProvider.OPENAI, settings)`
+4. Inject that client into `ProfileAnalyzerAgent`
+5. Run `await agent.analyze(...)`
+6. Close the OpenAI client when the block ends
+7. Print `analysis.model_dump_json(indent=2)` to stdout
+8. Return exit code `0`
 
 ## `extract-profile`
 
 ```bash
-career-ai extract-profile <request_path> [--provider mock|openai|cursor] [--mock]
+career-ai extract-profile <request_path> [--provider openai|cursor|mock] [--mock]
 ```
 
 | Argument | Meaning |
 |----------|---------|
 | `request_path` | Path to a JSON file matching `ProfileIngestionRequest` |
-| `--provider` | `mock`, `openai`, or `cursor`. Default: `openai` |
+| `--provider` | `openai`, `cursor`, or `mock`, in `LLMProvider` order. Default: `openai` |
 | `--mock` | Same as `--provider mock`. Kept for the existing command |
 
-The command runs `ProfileIngestionFlow`: normalize sources, extract each text source, print `ProfileExtractionResult` JSON. `ProfileExtractionAgent` receives a `StructuredLLMClient` and does not choose the provider.
+The command resolves `LLMProvider` from `--provider` and `--mock`, then runs:
+
+```python
+async with create_llm_client(provider, settings) as llm:
+    ...
+```
+
+Provider ids are not interpreted again inside the command. `ProfileIngestionFlow` normalizes sources, extracts each text source, and prints `ProfileExtractionResult` JSON. `ProfileExtractionAgent` receives the `StructuredLLMClient` and does not choose the provider. Connection setup and cleanup stay in `create_llm_client`.
 
 | Provider | Client | Requirement |
 |----------|--------|-------------|
@@ -97,9 +106,9 @@ The command runs `ProfileIngestionFlow`: normalize sources, extract each text so
 | `mock` | `MockStructuredLLM` | None. One canned profile per source, still one result per source |
 | `cursor` | `CursorStructuredLLMClient` | `CURSOR_API_KEY`. Output is validated with Pydantic |
 
-`--mock` together with `--provider openai` or `--provider cursor` is an error. `analyze-profile` has no `--provider` flag and still uses OpenAI.
+`--mock` together with a different `--provider` is an error. `analyze-profile` has no `--provider` flag. It always opens `LLMProvider.OPENAI` through the same context manager.
 
-File and URL sources are valid JSON and exit `1` with `UnsupportedProfileSourceError` on stderr. They are not read or fetched. A missing `CURSOR_API_KEY` with `--provider cursor` exits `1` before any SDK call.
+File and URL sources are valid JSON and exit `1` with `UnsupportedProfileSourceError` on stderr. They are not read or fetched. A missing API key for the selected `extract-profile` provider exits `1` before any provider call. `analyze-profile` still raises that `ValueError` when `OPENAI_API_KEY` is missing.
 
 Details: [Profile ingestion](profile-ingestion.md).
 
