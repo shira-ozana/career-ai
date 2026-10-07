@@ -95,3 +95,4 @@ flowchart TD
 2. Never paste tokens into chat / README
 3. When switching machines – copy `.env` separately (not via GitHub)
 4. `.gitignore` already ignores `.env` and `.env.*` (except `.env.example`)
+5. Claude Code and Cursor are both configured to refuse to read/edit/write or shell-access `.env`/`.env.*` – see [Env protection (AI agents)](env-protection.md)

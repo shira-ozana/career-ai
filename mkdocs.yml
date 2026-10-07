@@ -56,5 +56,6 @@ nav:
   - Development:
       - Documentation: development/documentation.md
       - Config and secrets: development/config.md
+      - Env protection (AI agents): development/env-protection.md
       - Database: development/database.md
       - Testing: development/testing.md
