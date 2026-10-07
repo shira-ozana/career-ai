@@ -1,0 +1,16 @@
+# Protect secret files from being read/indexed by Cursor's AI features.
+# This is the primary protection layer (see also .cursor/hooks.json) since
+# the beforeReadFile hook can be bypassed when a file is already open in
+# the editor.
+.env
+.env.*
+**/.env
+**/.env.*
+
+# Exceptions: keep safe example/template files visible to the AI.
+!.env.example
+!.env.sample
+!.env.template
+!**/.env.example
+!**/.env.sample
+!**/.env.template
