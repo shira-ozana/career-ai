@@ -16,7 +16,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "command -v python3 >/dev/null 2>&1 && python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/protect-env.py\" || python \"$CLAUDE_PROJECT_DIR/.claude/hooks/protect-env.py\""
+            "command": "if command -v python3 >/dev/null 2>&1; then python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/protect-env.py\"; else python \"$CLAUDE_PROJECT_DIR/.claude/hooks/protect-env.py\"; fi"
           }
         ]
       }

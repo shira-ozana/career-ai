@@ -3,12 +3,12 @@
   "hooks": {
     "beforeReadFile": [
       {
-        "command": "command -v python3 >/dev/null 2>&1 && python3 .cursor/hooks/before_read_file.py || python .cursor/hooks/before_read_file.py"
+        "command": "if command -v python3 >/dev/null 2>&1; then python3 .cursor/hooks/before_read_file.py; else python .cursor/hooks/before_read_file.py; fi"
       }
     ],
     "beforeShellExecution": [
       {
-        "command": "command -v python3 >/dev/null 2>&1 && python3 .cursor/hooks/before_shell_execution.py || python .cursor/hooks/before_shell_execution.py"
+        "command": "if command -v python3 >/dev/null 2>&1; then python3 .cursor/hooks/before_shell_execution.py; else python .cursor/hooks/before_shell_execution.py; fi"
       }
     ]
   }

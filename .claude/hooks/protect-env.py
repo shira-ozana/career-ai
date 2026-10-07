@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Claude Code PreToolUse hook: block reads/edits/writes/searches/shell
-commands that touch .env secret files (exceptions: .env.example,
-.env.sample, .env.template). See scripts/env_guard/common.py for the
-shared detection logic also used by the Cursor hooks."""
+commands that directly reference .env secret files (exceptions:
+.env.example, .env.sample, .env.template). See scripts/env_guard/common.py
+for the shared detection logic also used by the Cursor hooks."""
 
 import json
 import sys
@@ -10,7 +10,7 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT / "scripts" / "env_guard"))
-from common import command_touches_protected, directory_search_exposes_protected, is_protected_path  # noqa: E402
+from common import command_touches_protected, is_protected_path  # noqa: E402
 
 BLOCK_MESSAGE_SUFFIX = (
     "Access to .env secret files is blocked for AI agents in this project. "
@@ -26,7 +26,6 @@ def main():
 
     tool_name = payload.get("tool_name", "")
     tool_input = payload.get("tool_input") or {}
-    cwd = payload.get("cwd") or str(PROJECT_ROOT)
 
     reason = None
 
@@ -35,34 +34,17 @@ def main():
         if path and is_protected_path(path):
             reason = f"{tool_name} targets protected secrets file: {path}"
 
-    elif tool_name == "Glob":
-        # Glob only returns matching filenames, never file content, so it's
-        # enough to check the explicit path/pattern rather than walking the
-        # whole search directory.
+    elif tool_name in ("Glob", "Grep"):
         path = tool_input.get("path")
-        pattern = tool_input.get("pattern") or ""
+        pattern = tool_input.get("glob") or tool_input.get("pattern") or ""
         if path and is_protected_path(path):
-            reason = f"Glob path targets protected secrets file: {path}"
+            reason = f"{tool_name} path targets protected secrets file: {path}"
         elif pattern and is_protected_path(pattern):
-            reason = f"Glob pattern targets protected secrets file: {pattern}"
-
-    elif tool_name == "Grep":
-        # Grep reads file content, so a directory-wide search can surface a
-        # secret's value even when no argument names it directly.
-        path = tool_input.get("path")
-        glob_arg = tool_input.get("glob") or ""
-        if path and is_protected_path(path):
-            reason = f"Grep path targets protected secrets file: {path}"
-        elif glob_arg and is_protected_path(glob_arg):
-            reason = f"Grep glob filter targets protected secrets file: {glob_arg}"
-        else:
-            hit = directory_search_exposes_protected(path, cwd)
-            if hit:
-                reason = f"Grep search scope contains a protected secrets file ({hit})"
+            reason = f"{tool_name} pattern targets protected secrets file: {pattern}"
 
     elif tool_name == "Bash":
         command = tool_input.get("command", "")
-        touched, why = command_touches_protected(command, cwd)
+        touched, why = command_touches_protected(command)
         if touched:
             reason = why
 
