@@ -21,7 +21,8 @@ def main():
         return
 
     command = payload.get("command", "")
-    touched, reason = command_touches_protected(command)
+    cwd = payload.get("cwd")
+    touched, reason = command_touches_protected(command, cwd)
 
     if touched:
         print(json.dumps({
