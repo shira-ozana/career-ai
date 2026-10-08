@@ -60,3 +60,15 @@ nav:
       - Database: development/database.md
       - Testing: development/testing.md
       - Continuous integration: development/ci.md
+  - Project management:
+      - Overview: project-management/README.md
+      - Working agreement: project-management/working-agreement.md
+      - Project status: project-management/project-status.md
+      - Roadmap: project-management/roadmap.md
+      - Decision register: project-management/decision-register.md
+      - Features:
+          - Profile ingestion: project-management/features/profile-ingestion.md
+          - Profile reconciliation: project-management/features/profile-reconciliation.md
+          - Job search: project-management/features/job-search.md
+          - Job matching: project-management/features/job-matching.md
+          - CV tailoring: project-management/features/cv-tailoring.md
