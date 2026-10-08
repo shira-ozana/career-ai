@@ -20,7 +20,7 @@ jobs:
           - name: tests
             command: uv run --no-sync pytest -q
           - name: lint
-            command: uv run --no-sync ruff check app tests alembic
+            command: uv run --no-sync ruff check app tests alembic scripts .claude/hooks .cursor/hooks
           - name: docs
             command: uv run --no-sync mkdocs build --strict
     steps:

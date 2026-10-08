@@ -152,7 +152,7 @@ not the internal details of the OpenAI SDK.
 In addition to pytest:
 
 ```bash
-uv run ruff check app tests alembic
+uv run ruff check app tests alembic scripts .claude/hooks .cursor/hooks
 ```
 
 Ruff checks style, imports, and basic issues based on `pyproject.toml`.

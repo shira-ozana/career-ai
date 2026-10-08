@@ -30,7 +30,11 @@ def main():
     reason = None
 
     if tool_name in ("Read", "Write", "Edit", "MultiEdit", "NotebookEdit"):
-        path = tool_input.get("file_path") or tool_input.get("notebook_path") or tool_input.get("path")
+        path = (
+            tool_input.get("file_path")
+            or tool_input.get("notebook_path")
+            or tool_input.get("path")
+        )
         if path and is_protected_path(path):
             reason = f"{tool_name} targets protected secrets file: {path}"
 
