@@ -156,3 +156,7 @@ uv run ruff check app tests alembic
 ```
 
 Ruff checks style, imports, and basic issues based on `pyproject.toml`.
+
+## Continuous integration
+
+Pushes and pull requests run pytest, Ruff, and a strict MkDocs build on every branch. The commands and triggers are in [Continuous integration](ci.md).

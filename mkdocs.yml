@@ -58,3 +58,4 @@ nav:
       - Config and secrets: development/config.md
       - Database: development/database.md
       - Testing: development/testing.md
+      - Continuous integration: development/ci.md

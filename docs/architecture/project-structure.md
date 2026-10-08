@@ -39,6 +39,7 @@ career-ai/
 ├── tests/                       # Tests
 ├── examples/                    # Sample inputs
 ├── docs/                        # MkDocs site – see below
+├── .github/workflows/ci.yml     # tests, lint, and docs checks
 ├── scripts/                     # Helpers (git push)
 ├── alembic.ini
 ├── mkdocs.yml                   # Docs site navigation
@@ -62,7 +63,7 @@ docs/
 │   ├── future-architecture.md  # Evolution: workflows, model policy, evaluation
 │   └── project-structure.md    # This page
 ├── design/                     # Implemented feature and component design
-├── development/                # Setup, testing, documentation conventions
+├── development/                # Setup, testing, CI, documentation conventions
 ├── adr/
     ├── 001-postgresql.md
     ├── 002-modular-monolith.md
@@ -74,7 +75,7 @@ docs/
 
 Do not add empty placeholder pages.
 
-Guidelines: [Documentation](../development/documentation.md). Database setup: [Database](../development/database.md).
+Guidelines: [Documentation](../development/documentation.md). Database setup: [Database](../development/database.md). Checks: [Continuous integration](../development/ci.md).
 
 ## Why this layout?
 
