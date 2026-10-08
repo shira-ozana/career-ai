@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(.env)",
+      "Read(**/.env)",
+      "Edit(.env)",
+      "Edit(**/.env)",
+      "Write(.env)",
+      "Write(**/.env)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Read|Edit|Write|MultiEdit|Grep|Glob|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if command -v python3 >/dev/null 2>&1; then python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/protect-env.py\"; else python \"$CLAUDE_PROJECT_DIR/.claude/hooks/protect-env.py\"; fi"
+          }
+        ]
+      }
+    ]
+  }
+}
