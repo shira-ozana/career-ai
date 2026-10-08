@@ -65,12 +65,19 @@ docs/
 ├── design/                     # Implemented feature and component design
 ├── development/                # Setup, testing, CI, documentation conventions
 ├── adr/
-    ├── 001-postgresql.md
-    ├── 002-modular-monolith.md
-    ├── 003-application-owns-workflows.md
-    └── 004-catalog-first-job-search.md
-└── flows/
-    └── profile-ingestion.md    # Text extraction path
+│   ├── 001-postgresql.md
+│   ├── 002-modular-monolith.md
+│   ├── 003-application-owns-workflows.md
+│   └── 004-catalog-first-job-search.md
+├── flows/
+│   └── profile-ingestion.md    # Text extraction path
+└── project-management/         # Status, roadmap, working agreement, feature briefs
+    ├── README.md
+    ├── working-agreement.md
+    ├── project-status.md
+    ├── roadmap.md
+    ├── decision-register.md
+    └── features/
 ```
 
 Do not add empty placeholder pages.

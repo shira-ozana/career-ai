@@ -125,6 +125,8 @@ uv run pytest
 
 See [Architecture](./docs/architecture/overview.md), [Data architecture](./docs/architecture/data.md), and [Job Search](./docs/architecture/job-search.md). PostgreSQL is the selected database ([ADR 001](./docs/adr/001-postgresql.md)). The system is a modular monolith ([ADR 002](./docs/adr/002-modular-monolith.md)).
 
+Status, the working agreement, and per-feature handoff notes are in [Project management](./docs/project-management/README.md). That section keeps implemented work, in-design work, and unresolved disagreements separate. The list below stays a direction, not a schedule.
+
 Direction, not a delivery schedule:
 
 1. **Done as a first slice:** text profile extraction to per-source JSON (no database write)

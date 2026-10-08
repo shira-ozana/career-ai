@@ -25,8 +25,11 @@ Skip a docs update for typo-level edits, refactors that do not change behavior, 
 | A durable architectural decision | `docs/adr/` | `NNN-short-title.md` |
 | An end-to-end user or system path | `docs/flows/` | `<flow-name>.md` |
 | Setup, tooling, testing, conventions | `docs/development/` | a focused page |
+| Status, roadmap, working agreement, decisions that are not yet ADRs, feature handoff | `docs/project-management/` | the matching page |
 
 Do not add empty placeholder pages. Add a file when there is something real to say.
+
+Project-management pages summarize and link to architecture, design, ADR, and flow pages. Update them at a decision checkpoint or a feature handoff, including when the decision is recorded before code exists. Do not copy a technical page into a feature brief. Status labels and the handoff checklist are in [Project management](../project-management/README.md) and the [working agreement](../project-management/working-agreement.md).
 
 If you add a new page, list it in `mkdocs.yml` `nav` in the same change.
 
