@@ -18,6 +18,7 @@ The **product MVP and planned architecture** are documented separately from that
 | A durable architectural decision | [`adr/`](adr/001-postgresql.md) |
 | An end-to-end user or system path | [`flows/`](flows/profile-ingestion.md) |
 | Setup, tooling, testing, conventions | [`development/`](development/documentation.md) |
+| Status, roadmap, working agreement, feature handoff | [`project-management/`](project-management/README.md) |
 
 See [Documentation guidelines](development/documentation.md) for when a code change needs a docs update.
 
