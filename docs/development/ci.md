@@ -29,7 +29,7 @@ uv sync --locked --extra dev --extra docs
 | Check | Command |
 |-------|---------|
 | `tests` | `uv run --no-sync pytest -q` |
-| `lint` | `uv run --no-sync ruff check app tests alembic` |
+| `lint` | `uv run --no-sync ruff check app tests alembic scripts .claude/hooks .cursor/hooks` |
 | `docs` | `uv run --no-sync mkdocs build --strict` |
 
 Run the same commands locally before opening a pull request. Pytest and Ruff details are in [Testing](testing.md).
