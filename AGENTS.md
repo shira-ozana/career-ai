@@ -20,6 +20,13 @@ For feature work — starting or continuing a feature, project status, system de
 - Cursor: `.cursor/skills/career-ai-workflow/SKILL.md`, or `/career-ai-workflow`
 - Claude Code: the same directory through `.claude/skills/career-ai-workflow`, or `/career-ai-workflow`
 
+## Trello task intake
+
+When the user provides a Trello card link, or asks to start from an open Trello card, follow the `trello-task-review` skill first. That review is read-only. It does not approve implementation. The card defines the task; `career-ai-workflow` remains the procedure for the work that follows.
+
+- Cursor: `.cursor/skills/trello-task-review/SKILL.md`, or `/trello-task-review`
+- Claude Code: the same directory through `.claude/skills/trello-task-review`, or `/trello-task-review`
+
 ## Working in the repo
 
 - Change only the files the task requires.
